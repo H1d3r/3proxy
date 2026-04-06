@@ -39,6 +39,19 @@ jobs:
        dir /etc/apt/sources.list.d/ubuntu.sources
        sudo sed '/Components/a Architectures: armhf' /etc/apt/sources.list.d/ubuntu.sources
        cat /etc/apt/sources.list.d/ubuntu.sources
+       echo "Types: deb" > ~/ubuntu.sources
+       echo "URIs: http://archive.ubuntu.com/ubuntu/" >> ~/ubuntu.sources 
+       echo "Suites: noble noble-updates noble-backports" >> ~/ubuntu.sources 
+       echo "Components: main restricted universe multiverse" >> ~/ubuntu.sources 
+       echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >> ~/ubuntu.sources 
+       echo "Architectures: amd64" >> ~/ubuntu.sources 
+       echo "" >> ~/ubuntu.sources 
+       echo "Types: deb" >> ~/ubuntu.sources 
+       echo "URIs: http://security.ubuntu.com/ubuntu/" >> ~/ubuntu.sources 
+       echo "Suites: noble-security" >> ~/ubuntu.sources 
+       echo "Components: main restricted universe multiverse" >> ~/ubuntu.sources 
+       echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >> ~/ubuntu.sources 
+       sudo cp ~/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources
        sudo apt update
        sudo apt install libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhfv rpm crossbuild-essential-armhf
     - name: make rpmbuild dir
