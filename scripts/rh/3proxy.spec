@@ -49,7 +49,7 @@ make clean
 %config(noreplace) /usr/local/3proxy/conf/bandlimiters
 %config(noreplace) /usr/local/3proxy/conf/counters
 /usr/local/3proxy/libexec/*.ld.so
-%if "%{_arch}" == "arm"
+%if "%{_arch}" == "arm" || "%{_arch}" == "aarch64"
 /usr/share/man/man3/3proxy.cfg.3
 /usr/share/man/man8/3proxy.8
 /usr/share/man/man8/ftppr.8
