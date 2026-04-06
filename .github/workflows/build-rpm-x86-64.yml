@@ -1,4 +1,4 @@
-name: RPM build
+name: RPM build x86-64
 
 on:
   push:
