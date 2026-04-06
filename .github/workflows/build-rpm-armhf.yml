@@ -43,7 +43,7 @@ jobs:
        echo "Architectures: amd64" >> ~/ubuntu.sources 
        echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >> ~/ubuntu.sources 
        echo "" >> ~/ubuntu.sources 
-       echo "Types: deb" ~/ubuntu.sources 
+       echo "Types: deb" >>~/ubuntu.sources 
        echo "URIs: http://ports.ubuntu.com/ubuntu-ports/" >>~/ubuntu.sources
        echo "Suites: noble noble-updates" >>~/ubuntu.sources
        echo "Components: main restricted universe multiverse" >>~/ubuntu.sources
