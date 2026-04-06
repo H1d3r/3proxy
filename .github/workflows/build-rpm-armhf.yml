@@ -51,7 +51,7 @@ jobs:
        echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >>~/ubuntu.sources
        sudo cp ~/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources
        sudo apt update
-       sudo apt install libssl-dev:armhf libpam0g:armhf libpam0g-dev:armh libpam:armhf libpam-dev:armhf libpcre2-dev:armhf rpm crossbuild-essential-armhf
+       sudo apt install libssl-dev:armhf libpam0g:armhf libpam0g-dev:armhf libpcre2-dev:armhf rpm crossbuild-essential-armhf
     - name: make rpmbuild dir
       run: mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
     - name: configure rpm env
