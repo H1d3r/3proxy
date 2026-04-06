@@ -39,6 +39,10 @@ jobs:
     - name: rpmbuild
       run: |
        ret=`pwd`
+       mkdir ~/tmp
+       cd ~/tmp
+       TEMP=`pwd`
+       TMP=`pwd`
        cd ~/rpmbuild/SPECS
        rpmbuild --define "devel_version $VERSION" --define "version $VERSION" --define "name 3proxy"  -ba 3proxy-$RELEASE.spec
        cd $ret
