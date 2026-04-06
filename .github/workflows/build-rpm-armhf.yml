@@ -63,6 +63,7 @@ jobs:
       run: |
        ret=`pwd`
        cd ~/rpmbuild/SPECS
+       PAMLIB=pam0g
        rpmbuild -ba --define "_arch arm" --define "cross yes" --target=arm-linux-gnueabi 3proxy-$RELEASE.spec
        cd $ret
        mv ~/rpmbuild/RPMS/arm/3proxy-$RELEASE-1.arm.rpm 3proxy-$RELEASE.arm.rpm
