@@ -69,4 +69,3 @@ jobs:
       with:
        name: "3proxy-${{ env.RELEASE }}-arm64.rpm"
        path: "*.rpm"
-
