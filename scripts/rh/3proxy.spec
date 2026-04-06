@@ -48,12 +48,7 @@ make clean
 %config(noreplace) /usr/local/3proxy/conf/add3proxyuser.sh
 %config(noreplace) /usr/local/3proxy/conf/bandlimiters
 %config(noreplace) /usr/local/3proxy/conf/counters
-%config(missingok) /usr/local/3proxy/libexec/PCREPlugin.ld.so
-%config(missingok) /usr/local/3proxy/libexec/SSLPlugin.ld.so
-%config(missingok) /usr/local/3proxy/libexec/pamauth.ld.so
-/usr/local/3proxy/libexec/StringsPlugin.ld.so
-/usr/local/3proxy/libexec/TrafficPlugin.ld.so
-/usr/local/3proxy/libexec/TransparentPlugin.ld.so
+/usr/local/3proxy/libexec/*.ld.so
 %if "%{_arch}" == "arm"
 /usr/share/man/man3/3proxy.cfg.3
 /usr/share/man/man8/3proxy.8

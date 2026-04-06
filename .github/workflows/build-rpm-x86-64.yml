@@ -28,7 +28,7 @@ jobs:
     - name: Linux libraries
       run: |
        sudo apt update
-       sudo apt install libssl-dev libpam libpam-dev libpcre2-dev rpm
+       sudo apt install libssl-dev libpam-dev libpcre2-dev rpm
     - name: make rpmbuild dir
       run: mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
     - name: configure rpm env
