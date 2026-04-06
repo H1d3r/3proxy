@@ -72,11 +72,10 @@ jobs:
        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
        D:
        cd "D:/a/3proxy/3proxy"
-       mkdir bin64
        set "LIB=%LIB%;c:/program files/openssl/lib/VC/x64/MT;c:/vcpkg/installed/x64-windows/lib"
        set "INCLUDE=%INCLUDE%;c:/program files/openssl/include;c:/vcpkg/installed/x64-windows/include"
-       nmake /F Makefile.msvc64
-       nmake /F Makefile.msvc64 clean
+       nmake /F Makefile.msvc
+       nmake /F Makefile.msvc clean
     - name: make with CMake POSIX
       if: ${{ ! startsWith(matrix.target, 'windows') }}
       run: mkdir build && cd build && cmake .. && cmake --build .
