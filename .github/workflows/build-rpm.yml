@@ -22,8 +22,8 @@ jobs:
        echo "MAJOR==$(cat RELEASE | cut -d "-" -f 1)" >> $GITHUB_ENV
        echo "SUBMAJOR==$(cat RELEASE | cut -d "-" -f 2)" >> $GITHUB_ENV
        echo "MINOR==$(cat RELEASE | cut -d "-" -f 3)" >> $GITHUB_ENV
-    - name: env
-      run: echo "release: $RELEASE version: $VERSION major: $MAJOR submajor $SUBMAJOR minor: $MINOR"
+    - name: echo env
+      run: echo "release $RELEASE version $VERSION major $MAJOR submajor $SUBMAJOR minor: $MINOR"
     - name: Linux libraries
       run: sudo apt install libssl-dev libpam-dev libpcre2-dev libssl-dev:arm64 libpam-dev:arm64 libpcre2-dev:arm64 libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhf rpm-build rpmdevtools crossbuild-essential-arm64 crossbuild-essential-armhf
     - name: make rpmbuild dir
