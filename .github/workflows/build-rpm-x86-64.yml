@@ -33,9 +33,7 @@ jobs:
       run: mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
     - name: configure rpm env
       run: |
-       cd ..
-       tar -czf ~/rpmbuild/SOURCES/3proxy-$RELEASE.tar.gz 3proxy
-       cd 3proxy
+       tar -czf ~/rpmbuild/SOURCES/3proxy-$RELEASE.tar.gz --transform "s,^,3proxy-$RELEASE/," .
        ln -s ~/rpmbuild/SOURCES/3proxy-$RELEASE.tar.gz ~/rpmbuild/SOURCES/$RELEASE.tar.gz
        cp scripts/rh/3proxy.spec ~/rpmbuild/SPECS/3proxy-$RELEASE.spec
     - name: rpmbuild
