@@ -1,12 +1,12 @@
-name: C/C++ CI
+name: C/C++ CI cmake
 
 on:
   push:
     branches: [ "master" ]
-    paths: [ '**.c', '**.h', 'Makefile.**', '.github/configs', '.github/workflows/c-cpp.yml' ]
+    paths: [ '**.c', '**.h', 'Makefile.**', '.github/configs', '.github/workflows/c-cpp-cmake.yml' ]
   pull_request:
     branches: [ "master" ]
-    paths: [ '**.c', '**.h', 'Makefile.**', '.github/configs', '.github/workflows/c-cpp.yml' ]
+    paths: [ '**.c', '**.h', 'Makefile.**', '.github/configs', '.github/workflows/c-cpp-cmake.yml' ]
 
 jobs:
   ci:
@@ -26,18 +26,6 @@ jobs:
     - name: Linux libraries
       if: ${{ startsWith(matrix.target, 'ubuntu') }}
       run: sudo apt install libssl-dev libpam-dev libpcre2-dev
-    - name: make Ubuntu
-      if: ${{ startsWith(matrix.target, 'ubuntu') }}
-      run: make -f Makefile.Linux
-    - name: mkdir
-      if: ${{ startsWith(matrix.target, 'ubuntu') }}
-      run: mkdir ~/3proxy
-    - name: make install
-      if: ${{ startsWith(matrix.target, 'ubuntu') }}
-      run: make -f Makefile.Linux DESTDIR=~/3proxy install
-    - name: make clean Linux
-      if: ${{ startsWith(matrix.target, 'ubuntu') }}
-      run: make -f Makefile.Linux clean
     - name: Mac libraries
       if: ${{ startsWith(matrix.target, 'macos') }}
       run: brew install pcre2
@@ -53,32 +41,9 @@ jobs:
     - name: install Windows libraries
       if: ${{ startsWith(matrix.target, 'windows') }}
       run: vcpkg install pcre2:x64-windows && c:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-x86_64-pcre2 mingw-w64-x86_64-openssl
-    - name: make Windows
-      if: ${{ startsWith(matrix.target, 'windows') }}
-      run: make -f Makefile.win
-      env:
-       LDFLAGS: '-L "c:/msys64/mingw64/lib"'
-       CFLAGS: '-I "c:/msys64/mingw64/include"'
-    - name: make clean Windows
-      if: ${{ startsWith(matrix.target, 'windows') }}
-      run: make -f Makefile.win clean
-    - name: Add msbuild to PATH
-      if: ${{ startsWith(matrix.target, 'windows') }}
-      uses: microsoft/setup-msbuild@v3
-    - name: make Windows MSVC
-      if: ${{ startsWith(matrix.target, 'windows') }}
-      shell: cmd
-      run: |
-       call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-       D:
-       cd "D:/a/3proxy/3proxy"
-       set "LIB=%LIB%;c:/program files/openssl/lib/VC/x64/MT;c:/vcpkg/installed/x64-windows/lib"
-       set "INCLUDE=%INCLUDE%;c:/program files/openssl/include;c:/vcpkg/installed/x64-windows/include"
-       nmake /F Makefile.msvc
-       nmake /F Makefile.msvc clean
     - name: make with CMake POSIX
       if: ${{ ! startsWith(matrix.target, 'windows') }}
-      run: mkdir build && cd build && cmake .. && cmake --build .
+      run: mkdir build && cd build && cmake .. && cmake --build && mkdir ~/3proxy && DESTDIR=~/3proxy cmake --install . && cd .. && rm -rf build/
     - name: make with CMake Win
       if: ${{ startsWith(matrix.target, 'windows') }}
       shell: cmd
@@ -90,3 +55,5 @@ jobs:
        cmake ..
        dir
        cmake --build .
+       cd ..
+       rmdir /s /q build
