@@ -63,7 +63,7 @@ jobs:
        cd ~/rpmbuild/SPECS
        rpmbuild -ba --define "PAMLIB pam0g" --define "_arch aarch64" --define "cross yes" --target=aarch64-linux-gnueabi 3proxy-$RELEASE.spec
        cd $ret
-       mv ~/rpmbuild/RPMS/aarch64/3proxy-$RELEASE-1.arm.rpm 3proxy-$RELEASE.arm64.rpm
+       mv ~/rpmbuild/RPMS/aarch64/3proxy-$RELEASE-1.aarch64.rpm 3proxy-$RELEASE.arm64.rpm
     - name: Get artifact
       uses: actions/upload-artifact@v4
       with:
