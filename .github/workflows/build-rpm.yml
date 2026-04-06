@@ -1,0 +1,51 @@
+name: RPM build
+
+on:
+  push:
+    branches: [ "master" ]
+    paths: [ 'RELEASE', '.github/workflows/build-rpm.yml' ]
+
+jobs:
+  ci:
+    name: "${{ matrix.target }}"
+    strategy:
+      matrix:
+        target:
+          - ubuntu-latest
+    runs-on: ${{ matrix.target }}
+    steps:
+    - name: env
+      run: |
+       pwd
+       echo "RELEASE==$(cat RELEASE)" >> $GITHUB_ENV
+       echo "VERSION==$(date +%y%m%d%H%M%S)" >> $GITHUB_ENV
+       echo "MAJOR==$(cat RELEASE | cut -d "-" -f 1)" >> $GITHUB_ENV
+       echo "SUBMAJOR==$(cat RELEASE | cut -d "-" -f 2)" >> $GITHUB_ENV
+       echo "MINOR==$(cat RELEASE | cut -d "-" -f 3)" >> $GITHUB_ENV
+    - name: env
+      run: echo release: $RELEASE version: $VERSION major: $MAJOR submajor $SUBMAJOR minor: $MINOR
+    - name: Linux libraries
+      if: ${{ startsWith(matrix.target, 'ubuntu') }}
+      run: sudo apt install libssl-dev libpam-dev libpcre2-dev libssl-dev:arm64 libpam-dev:arm64 libpcre2-dev:arm64 libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhf rpm-build rpmdevtools crossbuild-essential-arm64 crossbuild-essential-armhf
+    - name: make rpmbuild dir
+      run: rpmdev-setuptree
+    - name: configure rpm env
+      run: |
+       git archive --format=tar --prefix=3proxy-$RELEASE/ master | gzip >~/rpmbuilds/SOURCES/3proxy-$RELEASE.tar.gz
+       cp scripts/rh/3proxy.spec ~/rpmbuild/SPECS/3proxy-$RELEASE.spec
+    - name: rpmbuild
+      run: |
+       ret=`pwd`
+       cd ~/rpmbuild/SPECS
+       rpmbuild --define "devel_version $VERSION" -ba 3proxy-$RELEASE.spec
+       rpmbuild -ba --define "devel_version $VERSION" --define "_arch arm" --define "cross yes" --target=arm-linux-gnueabi 3proxy-$RELEASE.spec
+       rpmbuild -ba --define "devel_version $VERSION" --define "_arch aarch64" --define "cross yes" --target=aarch64-linux-gnu 3proxy-$RELEASE.spec       
+       cd $ret
+       mv ~/rpmbuild/RPMS/x86_64/3proxy-$RELEASE-1.x86_64.rpm ../3proxy-$RELEASE.x86_64.rpm
+       mv ~/rpmbuild/RPMS/arm/3proxy-$RELEASE-1.arm.rpm ../3proxy-$RELEASE.arm.rpm
+       mv ~/rpmbuild/RPMS/aarch64/3proxy-$RELEASE-1.aarch64.rpm ../3proxy-$RELEASE.aarch64.rpm
+    - name: Get artifact
+      uses: actions/upload-artifact@v4
+      with:
+       name: "3proxy-${{ env.RELEASE }}-rpm"
+       path: *.rpm
