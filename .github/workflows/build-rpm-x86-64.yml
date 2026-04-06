@@ -33,7 +33,7 @@ jobs:
       run: mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
     - name: configure rpm env
       run: |
-       git archive --format=tar --prefix=3proxy-$RELEASE/ master | gzip >~/rpmbuilds/SOURCES/3proxy-$RELEASE.tar.gz
+       git archive --format=tar --prefix=3proxy-$RELEASE/ master | gzip >~/rpmbuild/SOURCES/3proxy-$RELEASE.tar.gz
        cp scripts/rh/3proxy.spec ~/rpmbuild/SPECS/3proxy-$RELEASE.spec
     - name: rpmbuild
       run: |
