@@ -27,7 +27,7 @@ jobs:
       run: echo "release $RELEASE version $VERSION major $MAJOR submajor $SUBMAJOR minor $MINOR"
     - name: Linux libraries
       run: |
-       apt update
+       sudo apt update
        sudo dpkg --add-architecture arm64
        sudo dpkg --add-architecture armhf
        sudo apt install libssl-dev libpam-dev libpcre2-dev libssl-dev:arm64 libpam-dev:arm64 libpcre2-dev:arm64 libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhf rpmd rpmdevtools crossbuild-essential-arm64 crossbuild-essential-armhf
