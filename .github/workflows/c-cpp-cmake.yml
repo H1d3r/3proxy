@@ -43,7 +43,14 @@ jobs:
       run: vcpkg install pcre2:x64-windows && c:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-x86_64-pcre2 mingw-w64-x86_64-openssl
     - name: make with CMake POSIX
       if: ${{ ! startsWith(matrix.target, 'windows') }}
-      run: mkdir build && cd build && cmake .. && cmake --build && mkdir ~/3proxy && DESTDIR=~/3proxy cmake --install . && cd .. && rm -rf build/
+      run: |
+       mkdir build
+       cd build
+       cmake ..
+       cmake --build .
+       mkdir ~/3proxy
+       DESTDIR=~/3proxy cmake --install .
+       cd .. && rm -rf build/
     - name: make with CMake Win
       if: ${{ startsWith(matrix.target, 'windows') }}
       shell: cmd

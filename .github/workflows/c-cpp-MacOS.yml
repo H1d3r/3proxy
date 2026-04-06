@@ -21,14 +21,11 @@ jobs:
 #    - name: configure
 #      run: ./configure
     - name: Mac libraries
-      if: ${{ startsWith(matrix.target, 'macos') }}
       run: brew install pcre2
     - name: make MacOS
-      if: ${{ startsWith(matrix.target, 'macos') }}
       run: make -f Makefile.FreeBSD
       env:
        LDFLAGS: "-L/usr/local/lib -L/opt/homebrew/lib -L/opt/homebrew/opt/openssl/lib"
        CFLAGS: "-I/usr/local/include -I/opt/homebrew/include -I/usr/local/opt/openssl/include -I/opt/homebrew/opt/openssl/include"
     - name: make clean MacOS
-      if: ${{ startsWith(matrix.target, 'macos') }}
       run: make -f Makefile.FreeBSD clean

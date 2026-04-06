@@ -16,8 +16,6 @@ jobs:
         target:
           - ubuntu-latest
           - ubuntu-24.04-arm
-          - macos-15
-          - windows-2022
     runs-on: ${{ matrix.target }}
     steps:
     - uses: actions/checkout@v4

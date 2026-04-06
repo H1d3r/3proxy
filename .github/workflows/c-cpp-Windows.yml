@@ -14,30 +14,22 @@ jobs:
     strategy:
       matrix:
         target:
-          - ubuntu-latest
-          - ubuntu-24.04-arm
-          - macos-15
           - windows-2022
     runs-on: ${{ matrix.target }}
     steps:
     - uses: actions/checkout@v4
     - name: install Windows libraries
-      if: ${{ startsWith(matrix.target, 'windows') }}
       run: vcpkg install pcre2:x64-windows && c:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-x86_64-pcre2 mingw-w64-x86_64-openssl
     - name: make Windows
-      if: ${{ startsWith(matrix.target, 'windows') }}
       run: make -f Makefile.win
       env:
        LDFLAGS: '-L "c:/msys64/mingw64/lib"'
        CFLAGS: '-I "c:/msys64/mingw64/include"'
     - name: make clean Windows
-      if: ${{ startsWith(matrix.target, 'windows') }}
       run: make -f Makefile.win clean
     - name: Add msbuild to PATH
-      if: ${{ startsWith(matrix.target, 'windows') }}
       uses: microsoft/setup-msbuild@v3
     - name: make Windows MSVC
-      if: ${{ startsWith(matrix.target, 'windows') }}
       shell: cmd
       run: |
        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
