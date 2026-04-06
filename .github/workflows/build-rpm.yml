@@ -30,9 +30,21 @@ jobs:
        sudo apt update
        sudo dpkg --add-architecture arm64
        sudo dpkg --add-architecture armhf
-       echo "Types: deb\nURIs: http://ports.ubuntu.com/ubuntu-ports/\nSuites: noble noble-updates noble-security\nComponents: main restricted universe multiverse\nArchitectures: arm64\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" | sudo tee -a /etc/apt/sources.list.d/arm64.sources
-       echo "Types: deb\nURIs: http://ports.ubuntu.com/ubuntu-ports/\nSuites: noble noble-updates noble-security\nComponents: main restricted universe multiverse\nArchitectures: armhf\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" | sudo tee -a /etc/apt/sources.list.d/armhf.sources
+       echo "Types: deb" >~/arm64.sources
+       echo "URIs: http://ports.ubuntu.com/ubuntu-ports/" >>~/arm64.sources
+       echo "Suites: noble noble-updates noble-security" >>~/arm64.sources
+       echo "Components: main restricted universe multiverse" >>~/arm64.sources
+       echo "rchitectures: arm64" >>~/arm64.sources
+       echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >>~/arm64.sources
+       sudo cp ~/arm64.sources /etc/apt/sources.list.d/arm64.sources
        cat /etc/apt/sources.list.d/arm64.sources
+       echo "Types: deb" >~/armhf.sources
+       echo "URIs: http://ports.ubuntu.com/ubuntu-ports/" >>~/armhf.sources
+       echo "Suites: noble noble-updates noble-security" >>~/armhf.sources
+       echo "Components: main restricted universe multiverse" >>~/armhf.sources
+       echo "rchitectures: armhf" >>~/armhf.sources
+       echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >>~/armhf.sources
+       sudo cp ~/armhf.sources /etc/apt/sources.list.d/armhf.sources
        sudo apt update
        sudo apt install libssl-dev libpam-dev libpcre2-dev libssl-dev:arm64 libpam-dev:arm64 libpcre2-dev:arm64 libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhf rpm crossbuild-essential-arm64 crossbuild-essential-armhf
     - name: make rpmbuild dir
