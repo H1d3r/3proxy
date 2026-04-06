@@ -17,7 +17,11 @@ Source:		https://github.com/%{packager}/%{name}/archive/%{version}.tar.gz
 ln -s Makefile.Linux Makefile
 
 %build
-make
+%if "%{?PAMLIB}" != ""
+    make PAMLIB=%{?PAMLIB}
+%else
+    make
+%endif
 
 %install
 make DESTDIR=%buildroot install
