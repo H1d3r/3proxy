@@ -1,4 +1,4 @@
-name: RPM build x86-64
+name: RPM build arm
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
        sudo dpkg --add-architecture armhf
        echo "Types: deb" >~/armhf.sources
        echo "URIs: http://ports.ubuntu.com/ubuntu-ports/" >>~/armhf.sources
-       echo "Suites: noble noble-updates noble-security" >>~/armhf.sources
+       echo "Suites: noble noble-updates" >>~/armhf.sources
        echo "Components: main restricted universe multiverse" >>~/armhf.sources
        echo "Architectures: armhf" >>~/armhf.sources
        echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >>~/armhf.sources
@@ -51,7 +51,7 @@ jobs:
        cd ~/rpmbuild/SPECS
        rpmbuild -ba --define "_arch arm" --define "cross yes" --target=arm-linux-gnueabi 3proxy-$RELEASE.spec
        cd $ret
-       mv ~/rpmbuild/RPMS/arm/3proxy-$RELEASE-1.arm.rpm ../3proxy-$RELEASE.arm.rpm
+       mv ~/rpmbuild/RPMS/arm/3proxy-$RELEASE-1.arm.rpm 3proxy-$RELEASE.arm.rpm
     - name: Get artifact
       uses: actions/upload-artifact@v4
       with:

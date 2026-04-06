@@ -42,7 +42,7 @@ jobs:
        cd ~/rpmbuild/SPECS
        rpmbuild -ba 3proxy-$RELEASE.spec
        cd $ret
-       mv ~/rpmbuild/RPMS/x86_64/3proxy-$RELEASE-1.x86_64.rpm ../3proxy-$RELEASE.x86_64.rpm
+       mv ~/rpmbuild/RPMS/x86_64/3proxy-$RELEASE-1.x86_64.rpm 3proxy-$RELEASE.x86_64.rpm
     - name: Get artifact
       uses: actions/upload-artifact@v4
       with:
