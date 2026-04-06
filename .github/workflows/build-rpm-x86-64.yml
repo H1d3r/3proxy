@@ -52,3 +52,4 @@ jobs:
       with:
        name: "3proxy-${{ env.RELEASE }}-rpm"
        path: "*.rpm"
+
