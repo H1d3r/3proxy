@@ -14,6 +14,7 @@ jobs:
           - ubuntu-latest
     runs-on: ${{ matrix.target }}
     steps:
+    - uses: actions/checkout@v4
     - name: env
       run: |
        pwd
@@ -25,9 +26,13 @@ jobs:
     - name: echo env
       run: echo "release $RELEASE version $VERSION major $MAJOR submajor $SUBMAJOR minor $MINOR"
     - name: Linux libraries
-      run: sudo apt install libssl-dev libpam-dev libpcre2-dev libssl-dev:arm64 libpam-dev:arm64 libpcre2-dev:arm64 libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhf rpm-build rpmdevtools crossbuild-essential-arm64 crossbuild-essential-armhf
+      run: |
+       apt update
+       sudo dpkg --add-architecture arm64
+       sudo dpkg --add-architecture armhf
+       sudo apt install libssl-dev libpam-dev libpcre2-dev libssl-dev:arm64 libpam-dev:arm64 libpcre2-dev:arm64 libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhf rpmd rpmdevtools crossbuild-essential-arm64 crossbuild-essential-armhf
     - name: make rpmbuild dir
-      run: rpmdev-setuptree
+      run: mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
     - name: configure rpm env
       run: |
        git archive --format=tar --prefix=3proxy-$RELEASE/ master | gzip >~/rpmbuilds/SOURCES/3proxy-$RELEASE.tar.gz
