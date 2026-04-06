@@ -36,6 +36,8 @@ jobs:
        echo "Architectures: armhf" >>~/armhf.sources
        echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >>~/armhf.sources
        sudo cp ~/armhf.sources /etc/apt/sources.list.d/armhf.sources
+       sudo sed '/Components/a \Architectures: armhf' /etc/apt/sources.list.d/ubuntu.sources
+       cat /etc/apt/sources.list.d/ubuntu.sources
        sudo apt update
        sudo apt install libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhfv rpm crossbuild-essential-armhf
     - name: make rpmbuild dir
