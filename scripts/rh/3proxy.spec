@@ -49,29 +49,8 @@ make clean
 %config(noreplace) /usr/local/3proxy/conf/bandlimiters
 %config(noreplace) /usr/local/3proxy/conf/counters
 /usr/local/3proxy/libexec/*.ld.so
-%if "%{_arch}" == "arm" || "%{_arch}" == "aarch64"
-/usr/share/man/man3/3proxy.cfg.3
-/usr/share/man/man8/3proxy.8
-/usr/share/man/man8/ftppr.8
-/usr/share/man/man8/pop3p.8
-/usr/share/man/man8/proxy.8
-/usr/share/man/man8/smtpp.8
-/usr/share/man/man8/socks.8
-/usr/share/man/man8/tcppm.8
-/usr/share/man/man8/udppm.8
-/usr/share/man/man8/tlspr.8
-%else
-/usr/share/man/man3/3proxy.cfg.3.gz
-/usr/share/man/man8/3proxy.8.gz
-/usr/share/man/man8/ftppr.8.gz
-/usr/share/man/man8/pop3p.8.gz
-/usr/share/man/man8/proxy.8.gz
-/usr/share/man/man8/smtpp.8.gz
-/usr/share/man/man8/socks.8.gz
-/usr/share/man/man8/tcppm.8.gz
-/usr/share/man/man8/udppm.8.gz
-/usr/share/man/man8/tlspr.8.gz
-%endif
+/usr/share/man/man3/*
+/usr/share/man/man8/*
 /var/log/3proxy
 
 %doc doc/*
