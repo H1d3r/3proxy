@@ -29,16 +29,6 @@ jobs:
       run: |
        sudo apt update
        sudo dpkg --add-architecture armhf
-       echo "Types: deb" >~/armhf.sources
-       echo "URIs: http://ports.ubuntu.com/ubuntu-ports/" >>~/armhf.sources
-       echo "Suites: noble noble-updates" >>~/armhf.sources
-       echo "Components: main restricted universe multiverse" >>~/armhf.sources
-       echo "Architectures: armhf" >>~/armhf.sources
-       echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >>~/armhf.sources
-       sudo cp ~/armhf.sources /etc/apt/sources.list.d/armhf.sources
-       dir /etc/apt/sources.list.d/ubuntu.sources
-       sudo sed '/Components/a Architectures: armhf' /etc/apt/sources.list.d/ubuntu.sources
-       cat /etc/apt/sources.list.d/ubuntu.sources
        echo "Types: deb" > ~/ubuntu.sources
        echo "URIs: http://archive.ubuntu.com/ubuntu/" >> ~/ubuntu.sources 
        echo "Suites: noble noble-updates noble-backports" >> ~/ubuntu.sources 
@@ -52,9 +42,16 @@ jobs:
        echo "Components: main restricted universe multiverse" >> ~/ubuntu.sources 
        echo "Architectures: amd64" >> ~/ubuntu.sources 
        echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >> ~/ubuntu.sources 
+       echo "" >> ~/ubuntu.sources 
+       echo "Types: deb" ~/ubuntu.sources 
+       echo "URIs: http://ports.ubuntu.com/ubuntu-ports/" >>~/ubuntu.sources
+       echo "Suites: noble noble-updates" >>~/ubuntu.sources
+       echo "Components: main restricted universe multiverse" >>~/ubuntu.sources
+       echo "Architectures: armhf" >>~/ubuntu.sources
+       echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >>~/ubuntu.sources
        sudo cp ~/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources
        sudo apt update
-       sudo apt install libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhfv rpm crossbuild-essential-armhf
+       sudo apt install libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhf rpm crossbuild-essential-armhf
     - name: make rpmbuild dir
       run: mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
     - name: configure rpm env
