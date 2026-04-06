@@ -3,7 +3,7 @@ name: RPM build x86-64
 on:
   push:
     branches: [ "master" ]
-    paths: [ 'RELEASE', '.github/workflows/build-rpm-x86-64.yml' ]
+    paths: [ 'RELEASE', '.github/workflows/build-rpm-armhf.yml' ]
 
 jobs:
   ci:
@@ -28,7 +28,16 @@ jobs:
     - name: Linux libraries
       run: |
        sudo apt update
-       sudo apt install libssl-dev libpam-dev libpcre2-dev rpm
+       sudo dpkg --add-architecture armhf
+       echo "Types: deb" >~/armhf.sources
+       echo "URIs: http://ports.ubuntu.com/ubuntu-ports/" >>~/armhf.sources
+       echo "Suites: noble noble-updates noble-security" >>~/armhf.sources
+       echo "Components: main restricted universe multiverse" >>~/armhf.sources
+       echo "Architectures: armhf" >>~/armhf.sources
+       echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" >>~/armhf.sources
+       sudo cp ~/armhf.sources /etc/apt/sources.list.d/armhf.sources
+       sudo apt update
+       sudo apt install libssl-dev:armhf libpam-dev:armhf libpcre2-dev:armhfv rpm
     - name: make rpmbuild dir
       run: mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
     - name: configure rpm env
@@ -40,12 +49,12 @@ jobs:
       run: |
        ret=`pwd`
        cd ~/rpmbuild/SPECS
-       rpmbuild -ba 3proxy-$RELEASE.spec
+       rpmbuild -ba --define "_arch arm" --define "cross yes" --target=arm-linux-gnueabi 3proxy-$RELEASE.spec
        cd $ret
-       mv ~/rpmbuild/RPMS/x86_64/3proxy-$RELEASE-1.x86_64.rpm ../3proxy-$RELEASE.x86_64.rpm
+       mv ~/rpmbuild/RPMS/arm/3proxy-$RELEASE-1.arm.rpm ../3proxy-$RELEASE.arm.rpm
     - name: Get artifact
       uses: actions/upload-artifact@v4
       with:
-       name: "3proxy-${{ env.RELEASE }}-x86_64.rpm"
+       name: "3proxy-${{ env.RELEASE }}-arm.rpm"
        path: "*.rpm"
 
