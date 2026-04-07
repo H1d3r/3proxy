@@ -41,10 +41,7 @@ int readtls(struct clientparam *param, int direction, unsigned char *buf, int bu
 int parsehello(int type, unsigned char *hello, int len, char *sni, int * snipos, int *lv, char * proto){
     int hlen;
     unsigned offset;
-    int slen;
-    int cslen;
-    int elen;
-    int snllen, snlen, alpnlen;
+    unsigned slen, cslen, elen, snllen, snlen, alpnlen;
     int snifound=0;
     
     if(len < 64) return -1;
@@ -232,7 +229,7 @@ void * tlsprchild(struct clientparam* param) {
     if (res < 0) RETURN(350-res);
  }
  if(param->srv->requirecert > 2){
-    int srvcert=0, clicert=0, reqcert=0, len, rlen, done;
+    int srvcert=0, clicert=0, reqcert=0, len, done;
     if(lv > 3) RETURN(370);
     for(done=0;!done;) {
 	len = param->srvinbuf;
