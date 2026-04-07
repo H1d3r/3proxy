@@ -38,10 +38,9 @@ int readtls(struct clientparam *param, int direction, unsigned char *buf, int bu
 #define PROTOLEN (32)
 
 
-int parsehello(int type, unsigned char *hello, int len, char *sni, int * snipos, int *lv, char * proto){
-    int hlen;
+int parsehello(int type, unsigned char *hello, unsigned len, char *sni, int * snipos, int *lv, char * proto){
     unsigned offset;
-    unsigned slen, cslen, elen, snllen, snlen, alpnlen;
+    unsigned hlen, slen, cslen, elen, snllen, snlen, alpnlen;
     int snifound=0;
     
     if(len < 64) return -1;
@@ -184,7 +183,7 @@ void * tlsprchild(struct clientparam* param) {
  }
  else {
     lv = param->clibuf[2];
-    res = parsehello(1, param->clibuf, res, sni, &snipos, &lv, proto);
+    res = parsehello(1, param->clibuf, (unsigned)res, sni, &snipos, &lv, proto);
     if(res > 0){
 	if(param->hostname){
 	    myfree(param->hostname);
@@ -225,7 +224,7 @@ void * tlsprchild(struct clientparam* param) {
     res = tlstobufsrv(param, 0);
     if(res <= 0 || param->srvbuf[0] != 22) RETURN(340-res);
     lv = param->srvbuf[2];
-    res = parsehello(2, param->srvbuf, res, sni, &snipos, &lv, proto);
+    res = parsehello(2, param->srvbuf, (unsigned)res, sni, &snipos, &lv, proto);
     if (res < 0) RETURN(350-res);
  }
  if(param->srv->requirecert > 2){
