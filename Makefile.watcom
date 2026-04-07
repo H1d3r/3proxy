@@ -62,9 +62,3 @@ allplugins:
 	nmake
 	del *.obj *.idb
 	cd ../../
-	copy Makefile plugins\PCREPlugin
-	copy Makefile.var plugins\PCREPlugin
-	cd plugins\PCREPlugin
-	nmake
-	del *.obj *.idb
-	cd ../../
