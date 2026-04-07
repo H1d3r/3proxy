@@ -40,7 +40,7 @@ jobs:
        set "INCLUDE=%INCLUDE%;c:/vcpkg/installed/x64-windows-static/include"
        echo "volatile char VerSion[]=^"3APA3A-3proxy-Internal-Build: 3proxy-%RELEASE%-%NOW%\r\nCode certificate: https://3proxy.org/3proxy.cer\r\n^";" >>src/3proxy.c
        echo %NOW% / %RELEASE% / %BUILDDATE% / %VERSION%
-       nmake /F Makefile.msvc "\"BUILDDATE=/D BUILDDATE=\\\"%NOW%\\\"\"" "VERSION=/D \"VERSION=\\\"3proxy-%RELEASE%\\\"\""
+       nmake /F Makefile.msvc
     - name: make dist dir
       shell: cmd
       run: |

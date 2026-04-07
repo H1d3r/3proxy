@@ -37,7 +37,7 @@ jobs:
        cd "D:/a/3proxy/3proxy"
        set "LIB=%LIB%;c:/vcpkg/installed/arm64-windows-static/lib"
        set "INCLUDE=%INCLUDE%;c:/vcpkg/installed/arm64-windows-static/include"
-       echo "volatile char VerSion[]=^"3APA3A-3proxy-Internal-Build: 3proxy-%RELEASE%%-%NOW%\r\nCode certificate: https://3proxy.org/3proxy.cer\r\n^";" >>src/3proxy.c
+       echo "volatile char VerSion[]=^"3APA3A-3proxy-Internal-Build: 3proxy-%RELEASE%-%NOW%\r\nCode certificate: https://3proxy.org/3proxy.cer\r\n^";" >>src/3proxy.c
        nmake /F Makefile.msvc
     - name: make dist dir
       shell: cmd
