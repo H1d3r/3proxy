@@ -151,8 +151,7 @@ unsigned char * mycrypt(const unsigned char *pw, const unsigned char *salt, unsi
     sp = salt +3;
     sl = (int)(ep - sp);
     magic = (unsigned char *)"$3$";
-
-    blake2b(final, MD5_SIZE, pw, strlen((char *)pw), salt, strlen((char *)salt) );
+    blake2b(final, MD5_SIZE, pw, strlen((char *)pw), sp, sl);
  }
  else {
 	*passwd = 0;
