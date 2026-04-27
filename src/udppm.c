@@ -18,81 +18,15 @@
 
 
 void * udppmchild(struct clientparam* param) {
- unsigned char *buf = NULL;
- int res, i;
-#ifdef _WIN32
- SASIZETYPE size;
- unsigned long ul = 1;
-#endif
 
-
- if(!param->hostname && parsehostname((char *)param->srv->target, param, ntohs(param->srv->targetport))) RETURN(100);
- if (SAISNULL(&param->req)) {
-	param->srv->fds.events = POLLIN;
-	RETURN (100);
- }
- if(!param->clibuf && (!(param->clibuf=myalloc(UDPBUFSIZE)) || !(param->clibufsize = UDPBUFSIZE))){
-	param->srv->fds.events = POLLIN;
-	RETURN (21);
- }
- param->cliinbuf = param->clioffset = 0;
- i = sockrecvfrom(param, param->srv->srvsock, (struct sockaddr *)&param->sincr, param->clibuf, param->clibufsize, 0);
- if(i<=0){
-	param->srv->fds.events = POLLIN;
-	RETURN (214);
- }
- param->cliinbuf = i;
-
-#ifdef _WIN32
-	if((param->clisock=param->srv->so._socket(param->sostate, SASOCK(&param->sincr), SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
-		RETURN(818);
-	}
-	if(param->srv->so._setsockopt(param->sostate, param->clisock, SOL_SOCKET, SO_REUSEADDR, (char *)&ul, sizeof(int))) {RETURN(820);};
-	ul = 1;
-	ioctlsocket(param->clisock, FIONBIO, &ul);
-	size = sizeof(param->sinsl);
-	if(param->srv->so._getsockname(param->sostate, param->srv->srvsock, (struct sockaddr *)&param->sinsl, &size)) {RETURN(21);};
-	if(param->srv->so._bind(param->sostate, param->clisock,(struct sockaddr *)&param->sinsl,SASIZE(&param->sinsl))) {
-		RETURN(822);
-	}
-#else
-	param->clisock = param->srv->srvsock;
-#endif
-
-#ifndef NOIPV6
- memcpy(&param->sinsl, *SAFAMILY(&param->req) == AF_INET? (struct sockaddr *)&param->srv->extsa : (struct sockaddr *)&param->srv->extsa6, SASIZE(&param->req));
-#else
- memcpy(&param->sinsl, &param->srv->extsa, SASIZE(&param->req));
-#endif
- *SAPORT(&param->sinsl) = 0;
- if ((param->remsock=param->srv->so._socket(param->sostate, SASOCK(&param->sinsl), SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {RETURN (11);}
- if(param->srv->so._bind(param->sostate, param->remsock,(struct sockaddr *)&param->sinsl,SASIZE(&param->sinsl))) {RETURN (12);}
-#ifdef _WIN32
-	ul = 1;
-	ioctlsocket(param->remsock, FIONBIO, &ul);
-#else
-	fcntl(param->remsock,F_SETFL,O_NONBLOCK | fcntl(param->remsock,F_GETFL));
-#endif
- memcpy(&param->sinsr, &param->req, sizeof(param->req));
-
- param->operation = UDPASSOC;
- if((res = (*param->srv->authfunc)(param))) {RETURN(res);}
- if(param->srv->singlepacket) {
-	param->srv->fds.events = POLLIN;
- }
-
- param->res = mapsocket(param, conf.timeouts[(param->srv->singlepacket)?SINGLEBYTE_L:STRING_L]);
- if(!param->srv->singlepacket) {
-	param->srv->fds.events = POLLIN;
- }
+ param->clisock = param->srv->srvsock;
+ param->waitserver64 = 0x7fffffffffffffff;
+ param->res = mapsocket(param, conf.timeouts[STRING_L]);
 
 CLEANRET:
 
- if(buf)myfree(buf);
  dolog(param, NULL);
-#ifndef _WIN32
  param->clisock = INVALID_SOCKET;
-#endif
  freeparam(param);
  return (NULL);
 }

@@ -500,6 +500,23 @@ struct sockfuncs {
 
 extern struct sockfuncs so;
 
+struct hashtable {
+	void (*index2hash_add)(const struct hashtable *ht, void *index, uint8_t *hash);
+	void (*index2hash_search)(const struct hashtable *ht, void *index, uint8_t *hash);
+	unsigned recsize;
+	unsigned hash_size;
+	unsigned poolsize;
+	unsigned tablesize;
+	unsigned growlimit;
+	uint32_t * ihashtable;
+	uint8_t * hashvalues;
+	uint8_t * hashhashvalues;
+	pthread_mutex_t hash_mutex;
+	time_t compacted;
+	uint32_t ihashhashempty;
+	uint32_t ihashempty;
+};
+
 struct srvparam {
 	struct sockfuncs so;
 	struct srvparam *next;
@@ -760,28 +777,13 @@ struct child {
 };
 
 
-struct hashtable {
-	void (*index2hash_add)(const struct hashtable *ht, void *index, uint8_t *hash);
-	void (*index2hash_search)(const struct hashtable *ht, void *index, uint8_t *hash);
-	unsigned recsize;
-	unsigned hash_size;
-	unsigned poolsize;
-	unsigned tablesize;
-	unsigned growlimit;
-	uint32_t * ihashtable;
-	uint8_t * hashvalues;
-	uint8_t * hashhashvalues;
-	time_t compacted;
-	uint32_t ihashhashempty;
-	uint32_t ihashempty;
-};
-
 extern struct hashtable dns_table;
 extern struct hashtable dns6_table;
 extern struct hashtable auth_table;
 extern struct hashtable pw_table;
 extern struct hashtable pwnt_table;
 extern struct hashtable pwcr_table;
+extern struct hashtable udp_table;
 
 struct authcache {
         unsigned char username[64];

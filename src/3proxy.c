@@ -511,7 +511,6 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int 
   pthread_mutex_init(&config_mutex, NULL);
   pthread_mutex_init(&bandlim_mutex, NULL);
   pthread_mutex_init(&connlim_mutex, NULL);
-  pthread_mutex_init(&hash_mutex, NULL);
   pthread_mutex_init(&tc_mutex, NULL);
   pthread_mutex_init(&log_mutex, NULL);
 #ifndef NORADIUS

@@ -251,6 +251,8 @@ int MODULEMAINFUNC (int argc, char** argv){
  unsigned char buf[256];
  char *hostname=NULL;
  int opt = 1, isudp = 0, iscbl = 0, iscbc = 0;
+ unsigned char udpbuf[UDPBUFSIZE];
+ int udplen = 0;
  unsigned char *cbc_string = NULL, *cbl_string = NULL;
  PROXYSOCKADDRTYPE cbsa;
  FILE *fp = NULL;
@@ -336,6 +338,11 @@ int MODULEMAINFUNC (int argc, char** argv){
  srvinit(&srv, &defparam);
  srv.pf = childdef.pf;
  isudp = childdef.isudp;
+#ifndef STDMAIN
+ if(isudp) {
+	if(!udp_table.ihashtable)inithashtable(&udp_table, 64, 256, 65536);
+ }
+#endif
  srv.service = defparam.service = childdef.service;
  
 #ifndef STDMAIN
@@ -900,9 +907,22 @@ int MODULEMAINFUNC (int argc, char** argv){
 		srv.so._setsockopt(srv.so.state, new_sock, SOL_SOCKET, SO_LINGER, (char *)&lg, sizeof(lg));
 		srv.so._setsockopt(srv.so.state, new_sock, SOL_SOCKET, SO_OOBINLINE, (char *)&opt, sizeof(int));
 	}
+#ifndef STDMAIN
 	else {
-		srv.fds.events = 0;
+		struct clientparam *toparam;
+		udplen = sockrecvfrom(NULL, srv.srvsock, (struct sockaddr *)&defparam.sincr, udpbuf, UDPBUFSIZE, 0);
+		if(udplen <= 0) continue;
+		pthread_mutex_lock(&srv.counter_mutex);
+		if(hashresolv(&udp_table, &defparam, &toparam, NULL)) {
+			socksendto(toparam, toparam->remsock, (struct sockaddr *)&toparam->sinsr, udpbuf, udplen, 0);
+			toparam->statscli64 += udplen;
+			toparam->nwrites++;
+			pthread_mutex_unlock(&srv.counter_mutex);
+			continue;
+		}
+		pthread_mutex_unlock(&srv.counter_mutex);
 	}
+#endif
 	if(! (newparam = myalloc (sizeof(defparam)))){
 		if(!isudp) srv.so._closesocket(srv.so.state, new_sock);
 		defparam.res = 21;
@@ -916,8 +936,35 @@ int MODULEMAINFUNC (int argc, char** argv){
 	if(!isudp) newparam->clisock = new_sock;
 #ifndef STDMAIN
 	if(makefilters(&srv, newparam) > CONTINUE){
-		freeparam(newparam);		
+		freeparam(newparam);
 		continue;
+	}
+	if(isudp) {
+		int authres;
+
+		if(parsehostname((char *)srv.target, newparam, ntohs(srv.targetport))) { freeparam(newparam); continue; }
+#ifndef NOIPV6
+		memcpy(&newparam->sinsl, *SAFAMILY(&newparam->req) == AF_INET6 ? (struct sockaddr *)&srv.extsa6 : (struct sockaddr *)&srv.extsa, SASIZE(&newparam->req));
+#else
+		memcpy(&newparam->sinsl, (struct sockaddr *)&srv.extsa, SASIZE(&newparam->req));
+#endif
+		*SAPORT(&newparam->sinsl) = 0;
+		newparam->remsock = srv.so._socket(srv.so.state, SASOCK(&newparam->sinsl), SOCK_DGRAM, IPPROTO_UDP);
+		if(newparam->remsock == INVALID_SOCKET) { freeparam(newparam); continue; }
+		if(srv.so._bind(srv.so.state, newparam->remsock, (struct sockaddr *)&newparam->sinsl, SASIZE(&newparam->sinsl))) { freeparam(newparam); continue; }
+#ifdef _WIN32
+		{ unsigned long ul2 = 1; ioctlsocket(newparam->remsock, FIONBIO, &ul2); }
+#else
+		fcntl(newparam->remsock, F_SETFL, O_NONBLOCK | fcntl(newparam->remsock, F_GETFL));
+#endif
+		memcpy(&newparam->sinsr, &newparam->req, sizeof(newparam->req));
+		newparam->operation = UDPASSOC;
+		authres = (*srv.authfunc)(newparam);
+		if(authres) { freeparam(newparam); continue; }
+		if(!srv.singlepacket)hashadd(&udp_table, newparam, &newparam, MAX_COUNTER_TIME);
+		socksendto(newparam, newparam->remsock, (struct sockaddr *)&newparam->sinsr, udpbuf, udplen, 0);
+		newparam->statscli64 += udplen;
+		newparam->nwrites++;
 	}
 #endif
 	newparam->prev = newparam->next = NULL;
@@ -963,7 +1010,6 @@ int MODULEMAINFUNC (int argc, char** argv){
 
 	memset(&defparam.sincl, 0, sizeof(defparam.sincl));
 	memset(&defparam.sincr, 0, sizeof(defparam.sincr));
-	if(isudp) while(!srv.fds.events)usleep(SLEEPTIME);
  }
 
 
@@ -1101,6 +1147,23 @@ void srvfree(struct srvparam * srv){
 
 void freeparam(struct clientparam * param) {
 	if(param->res == 2) return;
+	if(param->srv){
+		if(param->srv->so.freefunc) param->srv->so.freefunc(param->sostate);
+		pthread_mutex_lock(&param->srv->counter_mutex);
+#ifndef STDMAIN
+		if(param->srv->service == S_UDPPM) hashdelete(&udp_table, param);
+#endif
+		if(param->prev){
+			param->prev->next = param->next;
+		}
+		else
+			param->srv->child = param->next;
+		if(param->next){
+			param->next->prev = param->prev;
+		}
+		(param->srv->childcount)--;
+		pthread_mutex_unlock(&param->srv->counter_mutex);
+	}
 	if(param->clibuf) myfree(param->clibuf);
 	if(param->srvbuf) myfree(param->srvbuf);
 	if(param->ctrlsocksrv != INVALID_SOCKET && param->ctrlsocksrv != param->remsock) {
@@ -1137,20 +1200,6 @@ void freeparam(struct clientparam * param) {
 	}
 	if(param->connlim) stopconnlims(param);
 #endif
-	if(param->srv){
-		if(param->srv->so.freefunc) param->srv->so.freefunc(param->sostate);
-		pthread_mutex_lock(&param->srv->counter_mutex);
-		if(param->prev){
-			param->prev->next = param->next;
-		}
-		else
-			param->srv->child = param->next;
-		if(param->next){
-			param->next->prev = param->prev;
-		}
-		(param->srv->childcount)--;
-		pthread_mutex_unlock(&param->srv->counter_mutex);
-	}
 	if(param->hostname) myfree(param->hostname);
 	if(param->username) myfree(param->username);
 	if(param->password) myfree(param->password);

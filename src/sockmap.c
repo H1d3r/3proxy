@@ -95,10 +95,6 @@ int sockmap(struct clientparam * param, int timeo, int usesplice){
 	TOSERVER = 0;
 	FROMCLIENT = 0;
  }
- if(param->operation == UDPASSOC && param->srv->singlepacket){
-	fromclient = inclientbuf;
-	FROMCLIENT = 0;
- }
  if(inserverbuf >= fromserver) FROMSERVER = 0;
  if(inclientbuf >= fromclient) FROMCLIENT = 0;
 #ifdef WITHSPLICE
@@ -279,6 +275,7 @@ log("done send to client from buf");
 			if(param->srvoffset == param->srvinbuf)param->srvoffset = param->srvinbuf =0;
 			if(param->srvinbuf < param->srvbufsize) TOSERVERBUF = 1;
 			needaction = 0;
+			if(param->srv->singlepacket) RETURN(0);
 			continue;
 		}
 	}
@@ -417,10 +414,6 @@ log("done read from server to pipe\n");
 					sl1 = (*param->bandlimfunc)(param, res, 0);
 					if(sl1 > sleeptime) sleeptime = sl1;
 		    		}
- 				if(param->operation == UDPASSOC && param->srv->singlepacket){
-					fromserver = inserverpipe;
-					FROMSERVER = 0;
-				}
 				needaction = 0;
 				continue;
 			}
@@ -487,10 +480,6 @@ log("done read from server to buf");
 					if(sl1 > sleeptime) sleeptime = sl1;
 		    		}
 				if(param->srvbufsize == param->srvinbuf) TOSERVERBUF = 0;
- 				if(param->operation == UDPASSOC && param->srv->singlepacket){
-					fromserver = inserverbuf;
-					FROMSERVER = 0;
-				}
 				needaction = 0;
 				continue;
 			}

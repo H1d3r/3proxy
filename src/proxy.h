@@ -146,6 +146,18 @@ void daemonize(void);
 #define myrealloc realloc
 #define mystrdup strdup
 
+#ifdef _TIME64_T_DEFINED
+#ifdef _MAX__TIME64_T
+#define MAX_COUNTER_TIME (_MAX__TIME64_T)
+#elif defined (MAX__TIME64_T)
+#define MAX_COUNTER_TIME (MAX__TIME64_T)
+#else
+#define MAX_COUNTER_TIME (0x793406fff)
+#endif 
+#else
+#define MAX_COUNTER_TIME ((sizeof(time_t)>4)?(time_t)0x793406fff:(time_t)0x7fffffff)
+#endif
+
 extern RESOLVFUNC resolvfunc;
 
 extern int wday;
@@ -246,6 +258,7 @@ void mschap(const unsigned char *win_password,
 void destroyhashtable(struct hashtable *ht);
 int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, unsigned growlimit);
 void hashadd(struct hashtable *ht, void* name, void* value, time_t expires);
+void hashdelete(struct hashtable *ht, void* name);
 int hashresolv(struct hashtable *ht, void* name, void* value, uint32_t *ttl);
 
 int parsehost(int family, unsigned char *host, struct sockaddr *sa);
@@ -312,7 +325,6 @@ struct property;
 extern pthread_mutex_t config_mutex;
 extern pthread_mutex_t bandlim_mutex;
 extern pthread_mutex_t connlim_mutex;
-extern pthread_mutex_t hash_mutex;
 extern pthread_mutex_t tc_mutex;
 extern pthread_mutex_t log_mutex;
 extern pthread_mutex_t rad_mutex;

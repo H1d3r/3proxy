@@ -1,7 +1,6 @@
 #include "proxy.h"
 #include "libs/blake2.h"
 
-
 struct hashentry {
         time_t expires;
         uint32_t inext;
@@ -14,7 +13,7 @@ static uint32_t hashindex(unsigned tablesize, const uint8_t* hash){
 
 
 void destroyhashtable(struct hashtable *ht){
-    pthread_mutex_lock(&hash_mutex);
+    pthread_mutex_lock(&ht->hash_mutex);
     if(ht->ihashtable){
 	myfree(ht->ihashtable);
 	ht->ihashtable = NULL;
@@ -30,7 +29,8 @@ void destroyhashtable(struct hashtable *ht){
     ht->poolsize = 0;
     ht->tablesize = 0;
     ht->ihashempty = 0;
-    pthread_mutex_unlock(&hash_mutex);
+    pthread_mutex_unlock(&ht->hash_mutex);
+    pthread_mutex_destroy(&ht->hash_mutex);
 }
 
 #define hvalue(ht,I) ((struct hashentry *)(ht->hashvalues + (I-1)*(sizeof(struct hashentry) + ht->recsize - 4)))
@@ -53,21 +53,27 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
     c = clock();
 
     if(tablesize < 2 || poolsize < tablesize || growlimit < poolsize) return 1;
-    pthread_mutex_lock(&hash_mutex);
     if(ht->ihashtable){
-	myfree(ht->ihashtable);
-	ht->ihashtable = NULL;
+        pthread_mutex_lock(&ht->hash_mutex);
+	if(ht->ihashtable){
+	    myfree(ht->ihashtable);
+	    ht->ihashtable = NULL;
+	}
+	if(ht->hashvalues){
+	    myfree(ht->hashvalues);
+	    ht->hashvalues = NULL;
+	}
+	if(ht->hashhashvalues){
+	    myfree(ht->hashhashvalues);
+	    ht->hashhashvalues = NULL;
+	}
+	ht->poolsize = 0;
+	ht->tablesize = 0;
     }
-    if(ht->hashvalues){
-	myfree(ht->hashvalues);
-	ht->hashvalues = NULL;
+    else {
+	pthread_mutex_init(&ht->hash_mutex, NULL);
+        pthread_mutex_lock(&ht->hash_mutex);
     }
-    if(ht->hashhashvalues){
-	myfree(ht->hashhashvalues);
-	ht->hashhashvalues = NULL;
-    }
-    ht->poolsize = 0;
-    ht->tablesize = 0;
     if(!(ht->ihashtable = myalloc(tablesize *  sizeof(uint32_t)))
     || !(ht->hashvalues = myalloc(poolsize * (sizeof(struct hashentry) + (ht->recsize-4))))
     || !(ht->hashhashvalues = myalloc(poolsize * ht->hash_size))
@@ -76,7 +82,7 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
 	ht->ihashtable = NULL;
 	myfree(ht->hashvalues);
 	ht->hashvalues = NULL;
-	pthread_mutex_unlock(&hash_mutex);
+	pthread_mutex_unlock(&ht->hash_mutex);
 	return 3;
     }
     ht->poolsize = poolsize;
@@ -89,7 +95,7 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
 	hvalue(ht,i)->inext = i+1;
     }
     ht->ihashempty = 1;
-    pthread_mutex_unlock(&hash_mutex);
+    pthread_mutex_unlock(&ht->hash_mutex);
     return 0;
 }
 
@@ -174,7 +180,7 @@ void hashadd(struct hashtable *ht, void* name, void* value, time_t expires){
     }
 
     ht->index2hash_add(ht, name, hash);
-    pthread_mutex_lock(&hash_mutex);
+    pthread_mutex_lock(&ht->hash_mutex);
     index = hashindex(ht->tablesize, hash);
 
     for(hep = ht->ihashtable + index; (he = *hep)!=0; ){
@@ -209,7 +215,7 @@ void hashadd(struct hashtable *ht, void* name, void* value, time_t expires){
 	hvalue(ht,hen)->expires = expires;
     }
 
-    pthread_mutex_unlock(&hash_mutex);
+    pthread_mutex_unlock(&ht->hash_mutex);
 }
 
 int hashresolv(struct hashtable *ht, void* name, void* value, uint32_t *ttl){
@@ -222,7 +228,7 @@ int hashresolv(struct hashtable *ht, void* name, void* value, uint32_t *ttl){
 	return 0;
     }
     ht->index2hash_search(ht,name, hash);
-    pthread_mutex_lock(&hash_mutex);
+    pthread_mutex_lock(&ht->hash_mutex);
     index = hashindex(ht->tablesize, hash);
     for(hep = ht->ihashtable + index; (he = *hep)!=0; ){
 	if(hvalue(ht, he)->expires < conf.time) {
@@ -234,13 +240,37 @@ int hashresolv(struct hashtable *ht, void* name, void* value, uint32_t *ttl){
 	else if(!memcmp(hash, hhash(ht,he), ht->hash_size)){
 	    if(ttl) *ttl = (uint32_t)(hvalue(ht,he)->expires - conf.time);
 	    memcpy(value, hvalue(ht,he)->value, ht->recsize);
-	    pthread_mutex_unlock(&hash_mutex);
+	    pthread_mutex_unlock(&ht->hash_mutex);
 	    return 1;
 	}
 	else hep=&(hvalue(ht,he)->inext);
     }
-    pthread_mutex_unlock(&hash_mutex);
+    pthread_mutex_unlock(&ht->hash_mutex);
     return 0;
+}
+
+void hashdelete(struct hashtable *ht, void *name){
+    uint8_t hash[MAX_HASH_SIZE];
+    uint32_t *hep;
+    uint32_t he;
+    uint32_t index;
+
+    if(!ht || !ht->ihashtable || !name) {
+	return;
+    }
+    ht->index2hash_search(ht, name, hash);
+    pthread_mutex_lock(&ht->hash_mutex);
+    index = hashindex(ht->tablesize, hash);
+    for(hep = ht->ihashtable + index; (he = *hep) != 0; ){
+	if((hvalue(ht, he)->expires && hvalue(ht, he)->expires < conf.time) || !memcmp(hash, hhash(ht, he), ht->hash_size)) {
+	    (*hep) = hvalue(ht, he)->inext;
+	    hvalue(ht, he)->expires = 0;
+	    hvalue(ht, he)->inext = ht->ihashempty;
+	    ht->ihashempty = he;
+	}
+	else hep = &(hvalue(ht, he)->inext);
+    }
+    pthread_mutex_unlock(&ht->hash_mutex);
 }
 
 static void char_index2hash(const struct hashtable *ht, void *index, uint8_t *hash){
@@ -267,6 +297,28 @@ static void param2hash_add(const struct hashtable *ht, void *index, uint8_t *has
     if((type & 2048))blake2b_update(&S, SAPORT(&param->srv->intsa), 2);
     blake2b_final(&S, hash, ht->hash_size);
     memcpy(param->hash, hash, ht->hash_size);
+}
+
+void param2hash_search(const struct hashtable *ht, void *index, uint8_t *hash){
+    struct clientparam *param = (struct clientparam *)index;
+
+    memcpy(hash, param->hash, ht->hash_size);
+}
+
+static void user2hash_search(const struct hashtable *ht, void *index, uint8_t *hash){
+    struct clientparam *param = (struct clientparam *)index;
+    blake2b(hash, ht->hash_size, param->username, strlen((const char *)param->username), NULL, 0);
+}
+
+static void udpparam2hash(const struct hashtable *ht, void *index, uint8_t *hash){
+    struct clientparam *param = (struct clientparam *)index;
+    blake2b_state S;
+    blake2b_init(&S, ht->hash_size);
+    blake2b_update(&S, SAADDR(&param->srv->intsa), SAADDRLEN(&param->srv->intsa));
+    blake2b_update(&S, SAPORT(&param->srv->intsa), 2);
+    blake2b_update(&S, SAADDR(&param->sincr), SAADDRLEN(&param->sincr));
+    blake2b_update(&S, SAPORT(&param->sincr), 2);
+    blake2b_final(&S, hash, ht->hash_size);
 }
 
 static void pw2hash_add(const struct hashtable *ht, void *index, uint8_t *hash){
@@ -308,18 +360,7 @@ static void pwnt2hash_search(const struct hashtable *ht, void *index, uint8_t *h
     pwnt2hash_add(ht, pw, hash);
 }
 
-void param2hash_search(const struct hashtable *ht, void *index, uint8_t *hash){
-    struct clientparam *param = (struct clientparam *)index;
 
-    memcpy(hash, param->hash, ht->hash_size);
-}
-
-
-
-static void user2hash_search(const struct hashtable *ht, void *index, uint8_t *hash){
-    struct clientparam *param = (struct clientparam *)index;
-    blake2b(hash, ht->hash_size, param->username, strlen((const char *)param->username), NULL, 0);
-}
 
 struct hashtable dns_table = {char_index2hash, char_index2hash, 4, 12};
 struct hashtable dns6_table = {char_index2hash, char_index2hash, 16, 12};
@@ -327,3 +368,4 @@ struct hashtable auth_table = {param2hash_add, param2hash_search, sizeof(struct 
 struct hashtable pw_table = {pw2hash_add, pw2hash_search, 0, 12};
 struct hashtable pwnt_table = {pwnt2hash_add, pwnt2hash_search, 0, 12};
 struct hashtable pwcr_table = {char_index2hash, user2hash_search, 64, 12};
+struct hashtable udp_table =  {udpparam2hash, udpparam2hash, sizeof(struct clientparam *), 12};

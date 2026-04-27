@@ -23,7 +23,6 @@
 pthread_mutex_t bandlim_mutex;
 pthread_mutex_t connlim_mutex;
 pthread_mutex_t tc_mutex;
-pthread_mutex_t hash_mutex;
 pthread_mutex_t config_mutex;
 
 int haveerror = 0;
@@ -445,18 +444,6 @@ static int h_counter(int argc, unsigned char **argv){
 			fprintf(stderr, "Not a counter file %s, line %d\n", argv[1], linenum);
 			return 2;
 		}
-#ifdef _TIME64_T_DEFINED
-#ifdef _MAX__TIME64_T
-#define MAX_COUNTER_TIME (_MAX__TIME64_T)
-#elif defined (MAX__TIME64_T)
-#define MAX_COUNTER_TIME (MAX__TIME64_T)
-#else
-#define MAX_COUNTER_TIME (0x793406fff)
-#endif 
-#else
-#define MAX_COUNTER_TIME ((sizeof(time_t)>4)?(time_t)0x793406fff:(time_t)0x7fffffff)
-#endif
-
 		if(ch1.updated < 0 || ch1.updated >= MAX_COUNTER_TIME){
 			fprintf(stderr, "Invalid or corrupted counter file %s. Use countersutil utility to convert from older version\n", argv[1]);
 			return 3;

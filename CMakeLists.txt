@@ -416,7 +416,7 @@ target_include_directories(3proxy_crypt PRIVATE
 target_link_libraries(3proxy_crypt PRIVATE Threads::Threads)
 
 # Build standalone proxy executables
-foreach(PROXY_NAME proxy socks pop3p smtpp ftppr tcppm udppm tlspr)
+foreach(PROXY_NAME proxy socks pop3p smtpp ftppr tcppm tlspr)
     if(PROXY_NAME STREQUAL "ftppr" OR PROXY_NAME STREQUAL "proxy")
         # ftppr and proxy use ftp_obj
         add_executable(${PROXY_NAME}
@@ -500,7 +500,7 @@ if(PAM_FOUND)
 endif()
 
 # Installation rules
-install(TARGETS 3proxy 3proxy_crypt proxy socks pop3p smtpp ftppr tcppm udppm tlspr
+install(TARGETS 3proxy 3proxy_crypt proxy socks pop3p smtpp ftppr tcppm tlspr
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 

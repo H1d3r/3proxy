@@ -2,7 +2,7 @@
 # 3 proxy common Makefile
 #
 
-all:	$(BUILDDIR)3proxy$(EXESUFFICS) $(BUILDDIR)3proxy_crypt$(EXESUFFICS) $(BUILDDIR)pop3p$(EXESUFFICS) $(BUILDDIR)smtpp$(EXESUFFICS) $(BUILDDIR)ftppr$(EXESUFFICS) $(BUILDDIR)tcppm$(EXESUFFICS) $(BUILDDIR)tlspr$(EXESUFFICS) $(BUILDDIR)udppm$(EXESUFFICS) $(BUILDDIR)socks$(EXESUFFICS) $(BUILDDIR)proxy$(EXESUFFICS) allplugins
+all:	$(BUILDDIR)3proxy$(EXESUFFICS) $(BUILDDIR)3proxy_crypt$(EXESUFFICS) $(BUILDDIR)pop3p$(EXESUFFICS) $(BUILDDIR)smtpp$(EXESUFFICS) $(BUILDDIR)ftppr$(EXESUFFICS) $(BUILDDIR)tcppm$(EXESUFFICS) $(BUILDDIR)tlspr$(EXESUFFICS) $(BUILDDIR)socks$(EXESUFFICS) $(BUILDDIR)proxy$(EXESUFFICS) allplugins
 
 
 sockmap$(OBJSUFFICS): sockmap.c proxy.h structures.h
@@ -48,9 +48,6 @@ tlspr$(OBJSUFFICS): tlspr.c proxy.h structures.h proxymain.c
 socks$(OBJSUFFICS): socks.c proxy.h structures.h proxymain.c
 	$(CC) $(CFLAGS) $(DEFINEOPTION)WITHMAIN $(DEFINEOPTION)NOPORTMAP socks.c
 
-udppm$(OBJSUFFICS): udppm.c proxy.h structures.h proxymain.c
-	$(CC) $(CFLAGS) $(DEFINEOPTION)WITHMAIN $(DEFINEOPTION)PORTMAP udppm.c
-
 3proxy$(OBJSUFFICS): 3proxy.c proxy.h structures.h
 	$(CC) $(CFLAGS) 3proxy.c
 
@@ -75,13 +72,8 @@ $(BUILDDIR)tcppm$(EXESUFFICS): sockmap$(OBJSUFFICS) sockgetchar$(OBJSUFFICS) tcp
 $(BUILDDIR)tlspr$(EXESUFFICS): sockmap$(OBJSUFFICS) sockgetchar$(OBJSUFFICS) tlspr$(OBJSUFFICS) common$(OBJSUFFICS) log$(OBJSUFFICS)
 	$(LN) $(LNOUT)$(BUILDDIR)tlspr$(EXESUFFICS) $(LDFLAGS) sockmap$(OBJSUFFICS) sockgetchar$(OBJSUFFICS) tlspr$(OBJSUFFICS) log$(OBJSUFFICS) common$(OBJSUFFICS) $(LIBS)
 
-$(BUILDDIR)udppm$(EXESUFFICS): sockmap$(OBJSUFFICS) sockgetchar$(OBJSUFFICS) udppm$(OBJSUFFICS) common$(OBJSUFFICS) log$(OBJSUFFICS)
-	$(LN) $(LNOUT)$(BUILDDIR)udppm$(EXESUFFICS) $(LDFLAGS) sockmap$(OBJSUFFICS) sockgetchar$(OBJSUFFICS) udppm$(OBJSUFFICS) log$(OBJSUFFICS) common$(OBJSUFFICS) $(LIBS)
-
 mainfunc$(OBJSUFFICS): proxy.h structures.h proxymain.c
 	$(CC) $(COUT)mainfunc$(OBJSUFFICS) $(CFLAGS) $(DEFINEOPTION)MODULEMAINFUNC=mainfunc proxymain.c
-
-
 
 srvproxy$(OBJSUFFICS): proxy.c proxy.h structures.h
 	$(CC) $(COUT)srvproxy$(OBJSUFFICS) $(CFLAGS) proxy.c
