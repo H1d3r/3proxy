@@ -141,8 +141,10 @@ int timechanged (time_t oldtime, time_t newtime, ROTATION lt){
 	struct tm tmold;
 	struct tm *tm;
 	tm = localtime(&oldtime);
+	if(!tm) return 0;
 	tmold = *tm;
 	tm = localtime(&newtime);
+	if(!tm) return 0;
 	switch(lt){
 		case MINUTELY:
 			if(tm->tm_min != tmold.tm_min)return 1;
@@ -214,17 +216,17 @@ void dumpcounters(struct trafcount *tlin, int counterd){
 
 
 	cheader.updated = conf.time;
-	lseek(counterd, 0, SEEK_SET);
-	if(write(counterd, &cheader, sizeof(struct counter_header))){}
+	if(lseek(counterd, 0, SEEK_SET) >= 0 && write(counterd, &cheader, sizeof(struct counter_header))){}
 	for(tl=tlin; tl; tl = tl->next){
 		if(tl->number){
-			lseek(counterd, 
+			if(lseek(counterd, 
 				sizeof(struct counter_header) + (tl->number - 1) * sizeof(struct counter_record),
-				SEEK_SET);
-			crecord.traf64 = tl->traf64;
-			crecord.cleared = tl->cleared;
-			crecord.updated = tl->updated;
-			if(write(counterd, &crecord, sizeof(struct counter_record))){}
+				SEEK_SET) >= 0){
+			    crecord.traf64 = tl->traf64;
+			    crecord.cleared = tl->cleared;
+			    crecord.updated = tl->updated;
+			    if(write(counterd, &crecord, sizeof(struct counter_record))){}
+			}
 		}
 		if(tl->type!=NEVER && timechanged(tl->cleared, conf.time, tl->type)){
 			tl->cleared = conf.time;
@@ -267,9 +269,11 @@ void cyclestep(void){
 	}
 	if(timechanged(basetime, conf.time, DAILY)) {
 		tm = localtime(&conf.time);
-		wday = (1 << tm->tm_wday);
-		tm->tm_hour = tm->tm_min = tm->tm_sec = 0;
-		basetime = mktime(tm);
+		if(tm){
+			wday = (1 << tm->tm_wday);
+			tm->tm_hour = tm->tm_min = tm->tm_sec = 0;
+			basetime = mktime(tm);
+		}
 	}
 	if(conf.logname) {
 		if(timechanged(conf.logtime, conf.time, conf.logtype)) {
@@ -530,7 +534,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int 
   conf.version++;
 
   if(res) RETURN(res);
-  if(!writable)fclose(fp);
+  if(!writable){fclose(fp); fp = NULL;}
 
 #ifdef _WIN32
   
@@ -561,6 +565,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int 
 
 CLEARRETURN:
 
+ if(fp && fp != stdin) {fclose(fp); fp = NULL;}
  return 0;
 
 }

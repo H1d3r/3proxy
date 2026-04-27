@@ -57,7 +57,7 @@ int sockmap(struct clientparam * param, int timeo, int usesplice){
  int fdsc = 0;
  int sleeptime = 0;
  FILTER_ACTION action;
- int res;
+ int res = 0;
  SASIZETYPE sasize;
  int needaction = 0;
  int graceclinum=0, gracesrvnum=0, graceclitraf=0, gracesrvtraf=0;

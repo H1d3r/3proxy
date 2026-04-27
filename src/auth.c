@@ -118,7 +118,10 @@ int doauth(struct clientparam * param){
 			if(conf.authcachetype && authfuncs->authenticate && authfuncs->authenticate != cacheauth && param->username && (!(conf.authcachetype&4) || (!param->pwtype && param->password))){
 			    struct authcache ac={.username=""};
 
-			    if(param->username) strncpy((char *)ac.username, (char *)param->username, 64);
+			    if(param->username) {
+				strncpy((char *)ac.username, (char *)param->username, 64);
+				ac.username[63] = 0;
+			    }
 			    if(*SAFAMILY(&param->sincr) == AF_INET
 #ifndef NOIPv6
 				 || *SAFAMILY(&param->sincr) == AF_INET6
@@ -252,3 +255,4 @@ struct auth authfuncs[] = {
 	{authfuncs+8+AUTHOFFSET, NULL, NULL, "none"},
 	{NULL, NULL, NULL, ""}
 };
+

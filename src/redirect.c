@@ -138,7 +138,7 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 			if(socksend(param, param->remsock, buf, 3, conf.timeouts[CHAIN_TO]) != 3){
 				return 51;
 			}
-			param->statssrv64+=len;
+			param->statssrv64+=3;
 			param->nwrites++;
 			if(sockgetlinebuf(param, SERVER, buf, 2, EOF, conf.timeouts[CHAIN_TO]) != 2){
 				return 52;
@@ -334,9 +334,9 @@ int handleredirect(struct clientparam * param, struct ace * acentry){
 			    int len;
 			    len = sprintf(buf, "PROXY %s ",
 				*SAFAMILY(&param->sincr) == AF_INET6 ? "TCP6" : "TCP4");
-			    len += myinet_ntop(*SAFAMILY(&param->sincr), SAADDR(&param->sincr), buf+len, sizeof(param->sincr));
+			    len += myinet_ntop(*SAFAMILY(&param->sincr), SAADDR(&param->sincr), buf+len, sizeof(buf) - len);
 			    buf[len++] = ' ';
-			    len += myinet_ntop(*SAFAMILY(&param->sincl), SAADDR(&param->sincl), buf+len, sizeof(param->sincl));
+			    len += myinet_ntop(*SAFAMILY(&param->sincl), SAADDR(&param->sincl), buf+len, sizeof(buf) - len);
 			    len += sprintf(buf + len, " %hu %hu\r\n",
 				ntohs(*SAPORT(&param->sincr)),
 				ntohs(*SAPORT(&param->sincl))

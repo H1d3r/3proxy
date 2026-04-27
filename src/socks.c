@@ -98,7 +98,7 @@ void * sockschild(struct clientparam* param) {
 	buf[0] = (unsigned char) res;
 	if ((res = sockgetcharcli(param, conf.timeouts[SINGLEBYTE_S], 0)) == EOF) {RETURN(441);}
 	buf[1] = (unsigned char) res;
-	port = *(uint16_t*)buf;
+	memcpy(&port, buf, 2);
 	c = 1;
  }
  
@@ -158,16 +158,16 @@ void * sockschild(struct clientparam* param) {
 	 buf[0] = (unsigned char) res;
 	 if ((res = sockgetcharcli(param, conf.timeouts[SINGLEBYTE_S], 0)) == EOF) {RETURN(441);}
 	 buf[1] = (unsigned char) res;
-	 port = *(uint16_t*)buf;
+	 memcpy(&port, buf, 2);
 
  }
  else {
-	sockgetlinebuf(param, CLIENT, buf, BUFSIZE - 1, 0, conf.timeouts[STRING_S]);
+	if(sockgetlinebuf(param, CLIENT, buf, BUFSIZE - 1, 0, conf.timeouts[STRING_S]) < 0) {RETURN(441);}
 	buf[127] = 0;
 	if(param->srv->needuser && *buf && !param->username)param->username = (unsigned char *)mystrdup((char *)buf);
 	if(!memcmp(SAADDR(&param->req), "\0\0\0", 3)){
 		param->service = S_SOCKS45;
-		sockgetlinebuf(param, CLIENT, buf, BUFSIZE - 1, 0, conf.timeouts[STRING_S]);
+		if(sockgetlinebuf(param, CLIENT, buf, BUFSIZE - 1, 0, conf.timeouts[STRING_S]) < 0) {RETURN(441);}
 		buf[127] = 0;
 		if(param->hostname)myfree(param->hostname);
 		param->hostname = (unsigned char *)mystrdup((char *)buf);
@@ -314,8 +314,13 @@ fflush(stderr);
 	else{
 		buf[0] = 0;
 		buf[1] = 90 + !!(repcode);
-		memcpy(buf+2, SAPORT(&sin), 2);
-		memcpy(buf+4, SAADDR(&sin), 4);
+		if(*SAFAMILY(&sin) == AF_INET){
+			memcpy(buf+2, SAPORT(&sin), 2);
+			memcpy(buf+4, SAADDR(&sin), 4);
+		} else {
+			memset(buf+2, 0, 6);
+			param->res = 997;
+		}
 		socksend(param, param->clisock, buf, 8, conf.timeouts[STRING_S]);
 	}
 
@@ -336,8 +341,9 @@ fflush(stderr);
 		switch(command) {
 			case 1:
 				if(param->redirectfunc){
+					void *ret = (*param->redirectfunc)(param);
 					if(buf)myfree(buf);
-					return (*param->redirectfunc)(param);
+					return ret;
 				}
 				param->res = mapsocket(param, conf.timeouts[CONNECTION_L]);
 				break;
@@ -370,7 +376,10 @@ fflush(stderr);
                     		    unsigned long ul=1;
                     		    ioctlsocket(param->remsock, FIONBIO, &ul);
 #else
-                    		    fcntl(param->remsock,F_SETFL,O_NONBLOCK | fcntl(param->remsock,F_GETFL));
+                    		    {
+					int flags = fcntl(param->remsock, F_GETFL);
+					if(flags != -1) fcntl(param->remsock, F_SETFL, O_NONBLOCK | flags);
+				    }
 #endif
             			}
 

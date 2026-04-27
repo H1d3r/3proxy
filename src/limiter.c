@@ -42,6 +42,15 @@ int startconnlims (struct clientparam *param){
 			ce->basetime = conf.time;
 		}
 	}
+	if(ret) {
+		struct connlim * cee;
+		for(cee = conf.connlimiter; cee != ce; cee = cee->next) {
+			if(ACLmatches(cee->ace, param) && !cee->period && cee->rating) {
+				cee->rating--;
+			}
+		}
+		param->connlim = 0;
+	}
 	pthread_mutex_unlock(&connlim_mutex);
 	return ret;
 }

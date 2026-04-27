@@ -582,7 +582,7 @@ static int h_maxconn(int argc, unsigned char **argv){
 
 static int h_backlog(int argc, unsigned char **argv){
 	conf.backlog = atoi((char *)argv[1]);
-	if(conf.maxchild < 0) {
+	if(conf.backlog < 0) {
 		return(1);
 	}
 	return 0;
@@ -778,6 +778,7 @@ static int h_parent(int argc, unsigned char **argv){
 	chains->weight = (unsigned)atoi((char *)argv[1]);
 	if(chains->weight == 0 || chains->weight >1000) {
 		fprintf(stderr, "Chaining error: bad chain weight %u line %d\n", chains->weight, linenum);
+		myfree(chains);
 		return(3);
 	}
 	for(i = 0; redirs[i].name ; i++){
@@ -793,6 +794,7 @@ static int h_parent(int argc, unsigned char **argv){
 	}
 	if(!redirs[i].name) {
 		fprintf(stderr, "Chaining error: bad chain type (%s)\n", argv[2]);
+		myfree(chains);
 		return(4);
 	}
 #ifdef WITH_UN
@@ -803,12 +805,18 @@ static int h_parent(int argc, unsigned char **argv){
 #endif
 	cidr = strchr((char *)argv[3], '/');
 	if(cidr) *cidr = 0;
-	if(!getip46(46, argv[3], (struct sockaddr *)&chains->addr)) return (5);
+	if(!getip46(46, argv[3], (struct sockaddr *)&chains->addr)) {
+		myfree(chains);
+		return (5);
+	}
 #ifdef WITH_UN
 	}
 #endif
 	chains->exthost = (unsigned char *)mystrdup((char *)argv[3]);
-	if(!chains->exthost) return 21;
+	if(!chains->exthost) {
+		myfree(chains);
+		return 21;
+	}
 	if(cidr){
 		*cidr = '/';
 		chains->cidr = atoi(cidr + 1);
@@ -1221,7 +1229,10 @@ static int h_ace(int argc, unsigned char **argv){
 		}
 		memset(acl->chains, 0, sizeof(struct chain));
 		acl->chains->type = R_HTTP;
-		if(!getip46(46, argv[1], (struct sockaddr *)&acl->chains->addr)) return 5;
+		if(!getip46(46, argv[1], (struct sockaddr *)&acl->chains->addr)) {
+			freeacl(acl);
+			return 5;
+		}
 		*SAPORT(&acl->chains->addr) = htons((uint16_t)atoi((char *)argv[2]));
 		acl->chains->weight = 1000;
 	case ALLOW:
@@ -1405,7 +1416,7 @@ static int h_radius(int argc, unsigned char **argv){
 			s++;
 		}
 		if( !getip46(46, argv[nradservers + 2], (struct sockaddr *)&radiuslist[nradservers].authaddr)) return 1;
-		if( s && !getip46(46, (unsigned char *)s+1, (struct sockaddr *)&radiuslist[nradservers].localaddr)) return 2;
+		if( s && !getip46(46, (unsigned char *)s, (struct sockaddr *)&radiuslist[nradservers].localaddr)) return 2;
 		if(!*SAPORT(&radiuslist[nradservers].authaddr))*SAPORT(&radiuslist[nradservers].authaddr) = htons(1812);
 		port = ntohs(*SAPORT(&radiuslist[nradservers].authaddr));
 		radiuslist[nradservers].logaddr = radiuslist[nradservers].authaddr;
@@ -1709,8 +1720,8 @@ int parsestr (unsigned char *str, unsigned char **argm, int nitems, unsigned cha
 				*str = 0;
 				space = 1;
 				if(incbegin){
-					argc--;
-					if((fd = open((char *)incbegin+1, O_RDONLY)) <= 0){
+					if(argc) argc--;
+					if((fd = open((char *)incbegin+1, O_RDONLY)) < 0){
 						fprintf(stderr, "Failed to open %s\n", incbegin+1);
 						return -1;
 					}
@@ -1723,7 +1734,7 @@ int parsestr (unsigned char *str, unsigned char **argm, int nitems, unsigned cha
 						}
 					}
 					len = 0;
-					if(argm[argc]!=(incbegin+1)) {
+					if(argc > 0 && argm[argc]!=(incbegin+1)) {
 						len = (int)strlen((char *)argm[argc]);
 						memmove(buf+*inbuf, argm[argc], len);
 					}

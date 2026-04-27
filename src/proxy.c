@@ -337,7 +337,10 @@ for(;;){
 	if(su) {
 		su = (unsigned char *)mystrdup((char *)sb);
 		decodeurl(su, 0);
-		if(parseconnusername((char *)su, (struct clientparam *)param, 1, (uint16_t)((ftp)?21:80))) RETURN (100);
+		if(parseconnusername((char *)su, (struct clientparam *)param, 1, (uint16_t)((ftp)?21:80))) {
+			myfree(su);
+			RETURN (100);
+		}
 		myfree(su);
 	}
 	else if(parsehostname((char *)sb, (struct clientparam *)param, (uint16_t)((ftp)? 21:80))) RETURN(100);
@@ -1077,11 +1080,13 @@ REQUESTEND:
 CLEANRET:
 
  if(param->res != 555 && param->res && param->clisock != INVALID_SOCKET && (param->res < 90 || param->res >=800 || param->res == 100 ||(param->res > 500 && param->res< 800))) {
-	if((param->res>=509 && param->res < 517) || param->res > 900) while( (i = sockgetlinebuf(param, CLIENT, buf, BUFSIZE - 1, '\n', conf.timeouts[STRING_S])) > 2);
+	if((param->res>=509 && param->res < 517) || param->res > 900) {
+		if(buf) while( (i = sockgetlinebuf(param, CLIENT, buf, BUFSIZE - 1, '\n', conf.timeouts[STRING_S])) > 2);
+	}
 	if(param->res == 10) {
 		socksend(param, param->clisock, (unsigned char *)proxy_stringtable[2], (int)strlen(proxy_stringtable[2]), conf.timeouts[STRING_S]);
 	}
-	else if (res == 700 || res == 701){
+	else if (param->res == 700 || param->res == 701){
 		socksend(param, param->clisock, (unsigned char *)proxy_stringtable[16], (int)strlen(proxy_stringtable[16]), conf.timeouts[STRING_S]);
 		socksend(param, param->clisock, (unsigned char *)ftpbuf, inftpbuf, conf.timeouts[STRING_S]);
 	}

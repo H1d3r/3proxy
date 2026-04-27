@@ -101,7 +101,7 @@ void * threadfunc (void *p) {
 		if(token){
 		    sscanf(token,"%hu%hu", &u1, &u2);
 		    if(u1) *SAPORT(&param->sincr) = htons(u1);
-		    if(u2) *SAPORT(&param->sincl) = htons(u1);
+		    if(u2) *SAPORT(&param->sincl) = htons(u2);
 		}
 	    }
 	}
@@ -730,6 +730,12 @@ int MODULEMAINFUNC (int argc, char** argv){
 		sleeptime = (sleeptime<<1);
 		if(!sleeptime) {
 			srv.so._closesocket(srv.so.state, sock);
+			if(cbc_string) myfree(cbc_string);
+			if(cbl_string) myfree(cbl_string);
+			if(srv.ibindtodevice) myfree(srv.ibindtodevice);
+			if(srv.obindtodevice) myfree(srv.obindtodevice);
+			if(srv.logtarget) myfree(srv.logtarget);
+			if(srv.logformat) myfree(srv.logformat);
 			return -3;
 		}
 	}
@@ -737,6 +743,13 @@ int MODULEMAINFUNC (int argc, char** argv){
 		if(srv.so._listen (srv.so.state, sock, srv.backlog?srv.backlog : 1+(srv.maxchild>>3))==-1) {
 			sprintf((char *)buf, "listen(): %s", strerror(errno));
 			if(!srv.silent)dolog(&defparam, buf);
+			srv.so._closesocket(srv.so.state, sock);
+			if(cbc_string) myfree(cbc_string);
+			if(cbl_string) myfree(cbl_string);
+			if(srv.ibindtodevice) myfree(srv.ibindtodevice);
+			if(srv.obindtodevice) myfree(srv.obindtodevice);
+			if(srv.logtarget) myfree(srv.logtarget);
+			if(srv.logformat) myfree(srv.logformat);
 			return -4;
 		}
 	}
@@ -752,6 +765,12 @@ int MODULEMAINFUNC (int argc, char** argv){
 	parsehost(srv.family, cbl_string, (struct sockaddr *)&cbsa);
 	if((srv.cbsock=srv.so._socket(srv.so.state, SASOCK(&cbsa), SOCK_STREAM, IPPROTO_TCP))==INVALID_SOCKET) {
 		dolog(&defparam, (unsigned char *)"Failed to allocate connect back socket");
+		if(cbc_string) myfree(cbc_string);
+		if(cbl_string) myfree(cbl_string);
+		if(srv.ibindtodevice) myfree(srv.ibindtodevice);
+		if(srv.obindtodevice) myfree(srv.obindtodevice);
+		if(srv.logtarget) myfree(srv.logtarget);
+		if(srv.logformat) myfree(srv.logformat);
 		return -6;
 	}
 	opt = 1;
@@ -765,10 +784,24 @@ int MODULEMAINFUNC (int argc, char** argv){
 
 	if(srv.so._bind(srv.so.state, srv.cbsock, (struct sockaddr*)&cbsa, SASIZE(&cbsa))==-1) {
 		dolog(&defparam, (unsigned char *)"Failed to bind connect back socket");
+		srv.so._closesocket(srv.so.state, srv.cbsock);
+		if(cbc_string) myfree(cbc_string);
+		if(cbl_string) myfree(cbl_string);
+		if(srv.ibindtodevice) myfree(srv.ibindtodevice);
+		if(srv.obindtodevice) myfree(srv.obindtodevice);
+		if(srv.logtarget) myfree(srv.logtarget);
+		if(srv.logformat) myfree(srv.logformat);
 		return -7;
 	}
 	if(srv.so._listen(srv.so.state, srv.cbsock, 1 + (srv.maxchild>>4))==-1) {
 		dolog(&defparam, (unsigned char *)"Failed to listen connect back socket");
+		srv.so._closesocket(srv.so.state, srv.cbsock);
+		if(cbc_string) myfree(cbc_string);
+		if(cbl_string) myfree(cbl_string);
+		if(srv.ibindtodevice) myfree(srv.ibindtodevice);
+		if(srv.obindtodevice) myfree(srv.obindtodevice);
+		if(srv.logtarget) myfree(srv.logtarget);
+		if(srv.logformat) myfree(srv.logformat);
 		return -8;
 	}
  }
@@ -891,6 +924,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 		if(srv.so._getsockname(srv.so.state, new_sock, (struct sockaddr *)&defparam.sincl, &size)){
 			sprintf((char *)buf, "getsockname(): %s", strerror(errno));
 			if(!srv.silent)dolog(&defparam, buf);
+			srv.so._closesocket(srv.so.state, new_sock);
 			continue;
 		}
 #ifdef WITH_UN
@@ -993,20 +1027,27 @@ int MODULEMAINFUNC (int argc, char** argv){
 		if(!srv.silent)dolog(&defparam, buf);
 		error = 1;
 	}
+	pthread_mutex_unlock(&srv.counter_mutex);
+	if(error) freeparam(newparam);
 #else
 
 	error = pthread_create(&thread, &pa, threadfunc, (void *)newparam);
-	srv.childcount++;
 	if(error){
 		sprintf((char *)buf, "pthread_create(): %s", strerror(error));
 		if(!srv.silent)dolog(&defparam, buf);
+		if(newparam->prev) newparam->prev->next = newparam->next;
+		else srv.child = newparam->next;
+		if(newparam->next) newparam->next->prev = newparam->prev;
+		pthread_mutex_unlock(&srv.counter_mutex);
+		newparam->srv = NULL;
+		freeparam(newparam);
 	}
 	else {
+		srv.childcount++;
 		newparam->threadid = (uint64_t)thread;
+		pthread_mutex_unlock(&srv.counter_mutex);
 	}
 #endif
-	pthread_mutex_unlock(&srv.counter_mutex);
-	if(error) freeparam(newparam);
 
 	memset(&defparam.sincl, 0, sizeof(defparam.sincl));
 	memset(&defparam.sincr, 0, sizeof(defparam.sincr));
@@ -1166,21 +1207,23 @@ void freeparam(struct clientparam * param) {
 	}
 	if(param->clibuf) myfree(param->clibuf);
 	if(param->srvbuf) myfree(param->srvbuf);
-	if(param->ctrlsocksrv != INVALID_SOCKET && param->ctrlsocksrv != param->remsock) {
-		param->srv->so._shutdown(param->sostate, param->ctrlsocksrv, SHUT_RDWR);
-		param->srv->so._closesocket(param->sostate, param->ctrlsocksrv);
-	}
-	if(param->ctrlsock != INVALID_SOCKET && param->ctrlsock != param->clisock) {
-		param->srv->so._shutdown(param->sostate, param->ctrlsock, SHUT_RDWR);
-		param->srv->so._closesocket(param->sostate, param->ctrlsock);
-	}
-	if(param->remsock != INVALID_SOCKET) {
-		param->srv->so._shutdown(param->sostate, param->remsock, SHUT_RDWR);
-		param->srv->so._closesocket(param->sostate, param->remsock);
-	}
-	if(param->clisock != INVALID_SOCKET) {
-		param->srv->so._shutdown(param->sostate, param->clisock, SHUT_RDWR);
-		param->srv->so._closesocket(param->sostate, param->clisock);
+	if(param->srv) {
+		if(param->ctrlsocksrv != INVALID_SOCKET && param->ctrlsocksrv != param->remsock) {
+			param->srv->so._shutdown(param->sostate, param->ctrlsocksrv, SHUT_RDWR);
+			param->srv->so._closesocket(param->sostate, param->ctrlsocksrv);
+		}
+		if(param->ctrlsock != INVALID_SOCKET && param->ctrlsock != param->clisock) {
+			param->srv->so._shutdown(param->sostate, param->ctrlsock, SHUT_RDWR);
+			param->srv->so._closesocket(param->sostate, param->ctrlsock);
+		}
+		if(param->remsock != INVALID_SOCKET) {
+			param->srv->so._shutdown(param->sostate, param->remsock, SHUT_RDWR);
+			param->srv->so._closesocket(param->sostate, param->remsock);
+		}
+		if(param->clisock != INVALID_SOCKET) {
+			param->srv->so._shutdown(param->sostate, param->clisock, SHUT_RDWR);
+			param->srv->so._closesocket(param->sostate, param->clisock);
+		}
 	}
 	if(param->datfilterssrv) myfree(param->datfilterssrv);
 #ifndef STDMAIN
