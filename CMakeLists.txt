@@ -285,6 +285,9 @@ endif()
 set(3PROXY_CORE_SOURCES
     src/3proxy.c
     src/auth.c
+    src/acl.c
+    src/limiter.c
+    src/redirect.c
     src/authradius.c
     src/hash.c
     src/resolve.c
