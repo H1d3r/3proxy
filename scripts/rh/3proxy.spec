@@ -38,7 +38,6 @@ make clean
 /bin/proxy
 /bin/socks
 /bin/tcppm
-/bin/udppm
 /bin/tlspr
 %config(noreplace) /etc/3proxy/3proxy.cfg
 /etc/3proxy/conf

@@ -67,7 +67,6 @@ INSTALL_OBJS	= bin/3proxy \
 		  bin/proxy \
 		  bin/socks \
 		  bin/tcppm \
-		  bin/udppm \
 		  bin/tlspr
 		  
 

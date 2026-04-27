@@ -67,8 +67,7 @@ INSTALL_OBJS	= src/3proxy \
 		  src/pop3p \
 		  src/proxy \
 		  src/socks \
-		  src/tcppm \
-		  src/udppm
+		  src/tcppm
 		  
 
 INSTALL_CFG_OBJS = scripts/3proxy.cfg \
