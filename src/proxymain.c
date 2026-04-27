@@ -210,6 +210,16 @@ void setopts(SOCKET s, int opts){
 	}
 }
 
+static void freesrvstrings(struct srvparam *srv, unsigned char *cbc_string, unsigned char *cbl_string) {
+	if(cbc_string) myfree(cbc_string);
+	if(cbl_string) myfree(cbl_string);
+	if(srv->logtarget) myfree(srv->logtarget);
+	if(srv->logformat) myfree(srv->logformat);
+#if defined SO_BINDTODEVICE || defined IP_BOUND_IF
+	if(srv->ibindtodevice) myfree(srv->ibindtodevice);
+	if(srv->obindtodevice) myfree(srv->obindtodevice);
+#endif
+}
 
 #ifndef MODULEMAINFUNC
 #define MODULEMAINFUNC main
@@ -730,12 +740,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 		sleeptime = (sleeptime<<1);
 		if(!sleeptime) {
 			srv.so._closesocket(srv.so.state, sock);
-			if(cbc_string) myfree(cbc_string);
-			if(cbl_string) myfree(cbl_string);
-			if(srv.ibindtodevice) myfree(srv.ibindtodevice);
-			if(srv.obindtodevice) myfree(srv.obindtodevice);
-			if(srv.logtarget) myfree(srv.logtarget);
-			if(srv.logformat) myfree(srv.logformat);
+			freesrvstrings(&srv, cbc_string, cbl_string);
 			return -3;
 		}
 	}
@@ -744,12 +749,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 			sprintf((char *)buf, "listen(): %s", strerror(errno));
 			if(!srv.silent)dolog(&defparam, buf);
 			srv.so._closesocket(srv.so.state, sock);
-			if(cbc_string) myfree(cbc_string);
-			if(cbl_string) myfree(cbl_string);
-			if(srv.ibindtodevice) myfree(srv.ibindtodevice);
-			if(srv.obindtodevice) myfree(srv.obindtodevice);
-			if(srv.logtarget) myfree(srv.logtarget);
-			if(srv.logformat) myfree(srv.logformat);
+			freesrvstrings(&srv, cbc_string, cbl_string);
 			return -4;
 		}
 	}
@@ -765,12 +765,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 	parsehost(srv.family, cbl_string, (struct sockaddr *)&cbsa);
 	if((srv.cbsock=srv.so._socket(srv.so.state, SASOCK(&cbsa), SOCK_STREAM, IPPROTO_TCP))==INVALID_SOCKET) {
 		dolog(&defparam, (unsigned char *)"Failed to allocate connect back socket");
-		if(cbc_string) myfree(cbc_string);
-		if(cbl_string) myfree(cbl_string);
-		if(srv.ibindtodevice) myfree(srv.ibindtodevice);
-		if(srv.obindtodevice) myfree(srv.obindtodevice);
-		if(srv.logtarget) myfree(srv.logtarget);
-		if(srv.logformat) myfree(srv.logformat);
+		freesrvstrings(&srv, cbc_string, cbl_string);
 		return -6;
 	}
 	opt = 1;
@@ -785,23 +780,13 @@ int MODULEMAINFUNC (int argc, char** argv){
 	if(srv.so._bind(srv.so.state, srv.cbsock, (struct sockaddr*)&cbsa, SASIZE(&cbsa))==-1) {
 		dolog(&defparam, (unsigned char *)"Failed to bind connect back socket");
 		srv.so._closesocket(srv.so.state, srv.cbsock);
-		if(cbc_string) myfree(cbc_string);
-		if(cbl_string) myfree(cbl_string);
-		if(srv.ibindtodevice) myfree(srv.ibindtodevice);
-		if(srv.obindtodevice) myfree(srv.obindtodevice);
-		if(srv.logtarget) myfree(srv.logtarget);
-		if(srv.logformat) myfree(srv.logformat);
+		freesrvstrings(&srv, cbc_string, cbl_string);
 		return -7;
 	}
 	if(srv.so._listen(srv.so.state, srv.cbsock, 1 + (srv.maxchild>>4))==-1) {
 		dolog(&defparam, (unsigned char *)"Failed to listen connect back socket");
 		srv.so._closesocket(srv.so.state, srv.cbsock);
-		if(cbc_string) myfree(cbc_string);
-		if(cbl_string) myfree(cbl_string);
-		if(srv.ibindtodevice) myfree(srv.ibindtodevice);
-		if(srv.obindtodevice) myfree(srv.obindtodevice);
-		if(srv.logtarget) myfree(srv.logtarget);
-		if(srv.logformat) myfree(srv.logformat);
+		freesrvstrings(&srv, cbc_string, cbl_string);
 		return -8;
 	}
  }
