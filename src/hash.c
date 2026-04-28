@@ -74,7 +74,7 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
         pthread_mutex_lock(&ht->hash_mutex);
     }
     if(!(ht->ihashtable = myalloc(tablesize *  sizeof(uint32_t)))
-    || !(ht->hashvalues = myalloc(poolsize * (sizeof(struct hashentry) + (ht->recsize-4))))
+    || !(ht->hashvalues = myalloc(poolsize * (sizeof(struct hashentry) + ht->recsize - 4)))
     || !(ht->hashhashvalues = myalloc(poolsize * ht->hash_size))
     ){
 	myfree(ht->ihashtable);
