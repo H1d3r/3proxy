@@ -50,7 +50,7 @@ int sockmap(struct clientparam * param, int timeo, int usesplice){
  int FROMCLIENT = 1, TOCLIENTBUF = 1, FROMCLIENTBUF = 1, TOSERVER = 1, 
 	FROMSERVER = 1, TOSERVERBUF = 1, FROMSERVERBUF = 1, TOCLIENT = 1;
  int HASERROR=0;
- int CLIENTTERM = 0, SERVERTERM = 0;
+ int CLIENTTERMREAD = 0, CLIENTTERMWRITE = 0, SERVERTERMREAD = 0, SERVERTERMWRITE = 0;
  int after = 0;
  struct pollfd fds[6];
  struct pollfd *fdsp = fds;
@@ -62,6 +62,8 @@ int sockmap(struct clientparam * param, int timeo, int usesplice){
  int needaction = 0;
  int graceclinum=0, gracesrvnum=0, graceclitraf=0, gracesrvtraf=0;
  time_t gracetime = 0;
+ int cli_events = 0;
+ int srv_events = 0;
 
 #ifdef WITHSPLICE
  uint64_t inclientpipe = 0, inserverpipe = 0;
@@ -121,24 +123,24 @@ int sockmap(struct clientparam * param, int timeo, int usesplice){
  if(action != PASS) RETURN(19);
 
  while(
-	((!CLIENTTERM) && fromserver && (inserverbuf 
+	((!CLIENTTERMWRITE) && fromserver && (inserverbuf
 #ifdef WITHSPLICE
-		|| inserverpipe 
+		|| inserverpipe
 #endif
-		|| (!SERVERTERM )))
+		|| (!SERVERTERMREAD )))
 	||
-	((!SERVERTERM) && fromclient && (inclientbuf 
+	((!SERVERTERMWRITE) && fromclient && (inclientbuf
 #ifdef WITHSPLICE
-		|| inclientpipe 
+		|| inclientpipe
 #endif
-		|| (!CLIENTTERM )))
+		|| (!CLIENTTERMREAD )))
  ){
 
 
 #if WITHLOG > 1
 sprintf(logbuf, "int FROMCLIENT = %d, TOCLIENTBUF = %d, FROMCLIENTBUF = %d, TOSERVER = %d, "
 	"FROMSERVER = %d, TOSERVERBUF = %d, FROMSERVERBUF = %d, TOCLIENT = %d; inclientbuf=%d; "
-	"inserverbuf=%d, CLIENTTERM = %d, SERVERTERM =%d, fromserver=%u, fromclient=%u"
+	"inserverbuf=%d, CLIENTTERMREAD=%d CLIENTTERMWRITE=%d SERVERTERMREAD=%d SERVERTERMWRITE=%d fromserver=%u, fromclient=%u"
 #ifdef WITHSPLICE
 	 ", inserverpipe=%d, inclentpipe=%d "
 	"TOCLIENTPIPE=%d FROMCLIENTPIPE==%d TOSERVERPIPE==%d FROMSERVERPIPE=%d"
@@ -146,7 +148,7 @@ sprintf(logbuf, "int FROMCLIENT = %d, TOCLIENTBUF = %d, FROMCLIENTBUF = %d, TOSE
 	,
  FROMCLIENT, TOCLIENTBUF, FROMCLIENTBUF, TOSERVER, 
 	FROMSERVER, TOSERVERBUF, FROMSERVERBUF, TOCLIENT, 
-	(int)inclientbuf, (int)inserverbuf, CLIENTTERM, SERVERTERM, 
+	(int)inclientbuf, (int)inserverbuf, CLIENTTERMREAD, CLIENTTERMWRITE, SERVERTERMREAD, SERVERTERMWRITE, 
 	(unsigned)fromserver, (unsigned)fromclient
 #ifdef WITHSPLICE
 	,(int)inserverpipe, (int)inclientpipe,
@@ -215,7 +217,8 @@ log("send to server from buf");
 		if(res <= 0) {
 			TOSERVER = 0;
 			if(errno && errno != EAGAIN && errno != EINTR){
-				SERVERTERM = 1;
+				SERVERTERMREAD = 1;
+				SERVERTERMWRITE = 1;
 				HASERROR |= 2;
 			}
 		}
@@ -260,7 +263,8 @@ log("send to client from buf");
 		if(res <= 0) {
 			TOCLIENT = 0;
 			if(errno && errno != EAGAIN && errno != EINTR){
-				CLIENTTERM = 1;
+				CLIENTTERMREAD = 1;
+				CLIENTTERMWRITE = 1;
 				HASERROR |= 1;
 			}
 
@@ -357,7 +361,7 @@ log(logbuf);
 			if(res <= 0) {
 				FROMCLIENT = TOCLIENTPIPE = 0;
 				if(res == 0 && !errno) {
-					CLIENTTERM = 1;
+					CLIENTTERMREAD = 1;
 					continue;
 				}
 			}
@@ -394,7 +398,7 @@ log(logbuf);
 			if(res <= 0) {
 				FROMSERVER = TOSERVERPIPE = 0;
 				if(res == 0 && !errno) {
-					SERVERTERM = 1;
+					SERVERTERMREAD = 1;
 					continue;
 				}
 			}
@@ -430,8 +434,13 @@ log("read from client to buf");
 			res = param->srv->so._recvfrom(param->sostate, param->clisock, (char *)param->clibuf + param->cliinbuf, (int)MIN((uint64_t)param->clibufsize - param->cliinbuf, fromclient-inclientbuf), 0, (struct sockaddr *)&param->sincr, &sasize);
 			if(res <= 0) {
 				FROMCLIENT = 0;
-				if(res == 0 || (errno && errno != EINTR && errno !=EAGAIN)){
-					CLIENTTERM = 1;
+				if(res == 0) {
+					CLIENTTERMREAD = 1;
+					continue;
+				}
+				if(errno && errno != EINTR && errno !=EAGAIN){
+					CLIENTTERMREAD = 1;
+					CLIENTTERMWRITE = 1;
 					continue;
 				}
 			}
@@ -458,8 +467,13 @@ log("read from server to buf");
 			res = param->srv->so._recvfrom(param->sostate, param->remsock, (char *)param->srvbuf + param->srvinbuf, (int)MIN((uint64_t)param->srvbufsize - param->srvinbuf, fromserver-inserverbuf), 0, (struct sockaddr *)&param->sinsr, &sasize);
 			if(res <= 0) {
 				FROMSERVER = 0;
-				if(res == 0 || (errno && errno != EINTR && errno !=EAGAIN)) {
-					SERVERTERM = 1;
+				if(res == 0) {
+					SERVERTERMREAD = 1;
+					continue;
+				}
+				if(errno && errno != EINTR && errno !=EAGAIN) {
+					SERVERTERMREAD = 1;
+					SERVERTERMWRITE = 1;
 					continue;
 				}
 			}
@@ -485,42 +499,45 @@ log("done read from server to buf");
 			}
 		}
 	}
-	for(after = 0; after < 2; after ++){
+	for(after = 0, cli_events=0, srv_events=0; after < 2; after ++){
 		fdsc = 0;
+		
 		if(!after){
 			memset(fds, 0, sizeof(fds));
 		}
-		if(!CLIENTTERM){
+//		if(!CLIENTTERMREAD || !CLIENTTERMWRITE){
 			if(!after){
-				fds[fdsc].fd = param->clisock;
-				if(fromclient && !FROMCLIENT && ((
+				if(fromclient && !CLIENTTERMREAD && !FROMCLIENT && ((
 #ifdef WITHSPLICE
-					!usesplice && 
+					!usesplice &&
 #endif
-					TOCLIENTBUF) 
+					TOCLIENTBUF)
 #ifdef WITHSPLICE
 					|| (usesplice)
 #endif
-						)){
-#ifdef WITHLOG
-log("wait reading from client");
-#endif
-							fds[fdsc].events |= (POLLIN);
-						}
-				if(!TOCLIENT && (inserverbuf
+						))
+					cli_events |= POLLIN;
+				if(!TOCLIENT && !CLIENTTERMWRITE && (inserverbuf
 #ifdef WITHSPLICE
 					|| inserverpipe
 #endif
-						)){
+						))
+					cli_events |= POLLOUT;
+				if(cli_events){
+					fds[fdsc].fd = param->clisock;
+					fds[fdsc].events = cli_events;
 #ifdef WITHLOG
+if(cli_events & POLLIN)
+log("wait reading from client");
+if(cli_events & POLLOUT)
 log("wait writing to client");
 #endif
-							fds[fdsc].events |= POLLOUT;
-						}
+				}
 			}
-			else{
+			else if(cli_events){
 				if(fds[fdsc].revents &  (POLLERR|POLLNVAL)) {
-					CLIENTTERM = 1;
+					CLIENTTERMREAD = 1;
+					CLIENTTERMWRITE = 1;
 					HASERROR |= 1;
 				}
 				else {
@@ -538,47 +555,49 @@ log("ready to write to client");
 					}
 					if(fds[fdsc].revents &  (POLLHUP)) {
 						if(fds[fdsc].events & POLLIN) FROMCLIENT = 1;
-						if(fds[fdsc].events & POLLOUT) CLIENTTERM = 1;
+						if(fds[fdsc].events & POLLOUT) CLIENTTERMWRITE = 1;
 					}
 				}
 			}
 			fdsc++;
-		}
-		if(!SERVERTERM){
+
+//		if(!SERVERTERMREAD || !SERVERTERMWRITE){
 			if(!after){
-				fds[fdsc].fd = param->remsock;
-				if(fromserver && !FROMSERVER && ((
+				if(fromserver && !SERVERTERMREAD && !FROMSERVER && ((
 #ifdef WITHSPLICE
-					!usesplice && 
+					!usesplice &&
 #endif
-					TOSERVERBUF) 
+					TOSERVERBUF)
 #ifdef WITHSPLICE
 					|| (usesplice)
 #endif
-						)){
-#ifdef WITHLOG
-log("wait reading from server");
-#endif
-							fds[fdsc].events |= (POLLIN);
-						}
-				if(!TOSERVER && (inclientbuf
+						))
+					srv_events |= POLLIN;
+				if(!TOSERVER && !SERVERTERMWRITE && (inclientbuf
 #ifdef WITHSPLICE
 					|| inclientpipe
 #endif
-						)){
+						))
+					srv_events |= POLLOUT;
+				if(srv_events){
+					fds[fdsc].fd = param->remsock;
+					fds[fdsc].events = srv_events;
 #ifdef WITHLOG
+if(srv_events & POLLIN)
+log("wait reading from server");
+if(srv_events & POLLOUT)
 log("wait writing from server");
 #endif
-							fds[fdsc].events |= POLLOUT;
-						}
+				}
 			}
-			else{
+			else if(srv_events){
 				if(fds[fdsc].revents &  (POLLERR|POLLNVAL)) {
 #ifdef WITHLOG
 log("poll from server failed");
 #endif
 
-					SERVERTERM = 1;
+					SERVERTERMREAD = 1;
+					SERVERTERMWRITE = 1;
 					HASERROR |=2;
 				}
 				else {
@@ -599,12 +618,12 @@ log("ready to write to server");
 log("server terminated connection");
 #endif
 						if(fds[fdsc].events & POLLIN) FROMSERVER = 1;
-						if(fds[fdsc].events & POLLOUT) SERVERTERM = 1;
+						if(fds[fdsc].events & POLLOUT) SERVERTERMWRITE = 1;
 					}
 				}
 			}
 			fdsc++;
-		}
+//		}
 #ifdef WITHSPLICE
 		if(usesplice){
 			if(fromclient>inclientpipe && !TOCLIENTPIPE && inclientpipe < MAXSPLICE){
@@ -727,7 +746,7 @@ log("timeout");
  else if(inclientpipe || inserverpipe) res = 94;
 #endif
 
- if((param->nwrites > 0 && !SERVERTERM) || (param->nreads > 0 && !CLIENTTERM))
+ if((param->nwrites > 0 && !SERVERTERMWRITE) || (param->nreads > 0 && !CLIENTTERMWRITE))
 	usleep(SLEEPTIME * 10);
 
 CLEANRET:
