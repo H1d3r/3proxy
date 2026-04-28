@@ -32,13 +32,15 @@ make clean
 
 %files
 /bin/3proxy
-/bin/ftppr
 /bin/3proxy_crypt
-/bin/pop3p
-/bin/proxy
-/bin/socks
-/bin/tcppm
-/bin/tlspr
+/bin/3proxy_ftppr
+/bin/3proxy_pop3p
+/bin/3proxy_proxy
+/bin/3proxy_smtpp
+/bin/3proxy_socks
+/bin/3proxy_tcppm
+/bin/3proxy_tlspr
+/bin/3proxy_udppm
 %config(noreplace) /etc/3proxy/3proxy.cfg
 /etc/3proxy/conf
 /etc/init.d/3proxy
@@ -48,7 +50,7 @@ make clean
 %config(noreplace) /usr/local/3proxy/conf/bandlimiters
 %config(noreplace) /usr/local/3proxy/conf/counters
 /usr/local/3proxy/libexec/*.ld.so
-/usr/share/man/man3/*
+/usr/share/man/man5/3proxy.cfg.5
 /usr/share/man/man8/*
 /var/log/3proxy
 

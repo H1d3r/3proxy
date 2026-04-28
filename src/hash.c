@@ -1,5 +1,4 @@
 #include "proxy.h"
-#include "libs/blake2.h"
 
 struct hashentry {
         time_t expires;
@@ -273,99 +272,45 @@ void hashdelete(struct hashtable *ht, void *name){
     pthread_mutex_unlock(&ht->hash_mutex);
 }
 
-static void char_index2hash(const struct hashtable *ht, void *index, uint8_t *hash){
-    char* name = index;
+#define MURMUR_C1 0xcc9e2d51u
+#define MURMUR_C2 0x1b873593u
 
-    blake2b(hash, ht->hash_size, index, strlen((const char*)index), NULL, 0);
+uint32_t murmurhash3(const void *key, int len, uint32_t seed) {
+    const uint8_t *data = (const uint8_t *)key;
+    const int nblocks = len / 4;
+    uint32_t h = seed;
+    int i;
+    const uint32_t *blocks = (const uint32_t *)(data);
+    const uint8_t *tail = data + nblocks * 4;
+    uint32_t k;
+
+    for (i = 0; i < nblocks; i++) {
+        memcpy(&k, blocks + i, sizeof(k));
+        k *= MURMUR_C1;
+        k = (k << 15) | (k >> 17);
+        k *= MURMUR_C2;
+        h ^= k;
+        h = (h << 13) | (h >> 19);
+        h = h * 5 + 0xe6546b64u;
+    }
+
+    k = 0;
+    switch (len & 3) {
+        case 3: k ^= (uint32_t)tail[2] << 16; /* fall through */
+        case 2: k ^= (uint32_t)tail[1] << 8;  /* fall through */
+        case 1: k ^= (uint32_t)tail[0];
+                k *= MURMUR_C1;
+                k = (k << 15) | (k >> 17);
+                k *= MURMUR_C2;
+                h ^= k;
+    }
+
+    h ^= (uint32_t)len;
+    h ^= h >> 16;
+    h *= 0x85ebca6bu;
+    h ^= h >> 13;
+    h *= 0xc2b2ae35u;
+    h ^= h >> 16;
+
+    return h;
 }
-
-static void param2hash_add(const struct hashtable *ht, void *index, uint8_t *hash){
-    blake2b_state S;
-    struct clientparam *param = (struct clientparam *)index;
-    unsigned type = param->srv->authcachetype;
-
-    blake2b_init(&S, ht->hash_size);
-    if((type & 2) && param->username)blake2b_update(&S, param->username, strlen((const char *)param->username) + 1);
-    if((type & 4) && param->password)blake2b_update(&S, param->password, strlen((const char *)param->password) + 1);
-    if((type & 1) && !(type & 8))blake2b_update(&S, SAADDR(&param->sincr), SAADDRLEN(&param->sincr));
-    if((type & 16))blake2b_update(&S, &param->srv->acl, sizeof(param->srv->acl));
-    if((type & 64))blake2b_update(&S, SAADDR(&param->req), SAADDRLEN(&param->req));
-    if((type & 128))blake2b_update(&S, SAPORT(&param->req), 2);
-    if((type & 256) && param->hostname)blake2b_update(&S, param->hostname, strlen((const char *)param->hostname) + 1);
-    if((type & 512))blake2b_update(&S, &param->operation, sizeof(param->operation));
-    if((type & 1024))blake2b_update(&S, SAADDR(&param->srv->intsa), SAADDRLEN(&param->srv->intsa));
-    if((type & 2048))blake2b_update(&S, SAPORT(&param->srv->intsa), 2);
-    blake2b_final(&S, hash, ht->hash_size);
-    memcpy(param->hash, hash, ht->hash_size);
-}
-
-void param2hash_search(const struct hashtable *ht, void *index, uint8_t *hash){
-    struct clientparam *param = (struct clientparam *)index;
-
-    memcpy(hash, param->hash, ht->hash_size);
-}
-
-static void user2hash_search(const struct hashtable *ht, void *index, uint8_t *hash){
-    struct clientparam *param = (struct clientparam *)index;
-    blake2b(hash, ht->hash_size, param->username, strlen((const char *)param->username), NULL, 0);
-}
-
-static void udpparam2hash(const struct hashtable *ht, void *index, uint8_t *hash){
-    struct clientparam *param = (struct clientparam *)index;
-    blake2b_state S;
-    blake2b_init(&S, ht->hash_size);
-    blake2b_update(&S, SAADDR(&param->srv->intsa), SAADDRLEN(&param->srv->intsa));
-    blake2b_update(&S, SAPORT(&param->srv->intsa), 2);
-    blake2b_update(&S, SAADDR(&param->sincr), SAADDRLEN(&param->sincr));
-    blake2b_update(&S, SAPORT(&param->sincr), 2);
-    blake2b_final(&S, hash, ht->hash_size);
-}
-
-static void pw2hash_add(const struct hashtable *ht, void *index, uint8_t *hash){
-    char ** pw = (char **)index;
-    blake2b_state S;
-    
-    blake2b_init(&S, ht->hash_size);
-    if(pw[0])blake2b_update(&S, pw[0], strlen(pw[0]) + 1);
-    if(pw[1])blake2b_update(&S, pw[1], strlen(pw[1]) + 1);
-    blake2b_final(&S, hash, ht->hash_size);
-}
-
-
-static void pw2hash_search(const struct hashtable *ht, void *index, uint8_t *hash){
-    struct clientparam *param  = (struct clientparam *)index;
-
-    char *pw[2] = {(char *)param->username, (char *)param->password};
-    
-    pw2hash_add(ht, pw, hash);
-}
-
-static void pwnt2hash_add(const struct hashtable *ht, void *index, uint8_t *hash){
-    char ** pw = (char **)index;
-    blake2b_state S;
-    
-    blake2b_init(&S, ht->hash_size);
-    if(pw[0])blake2b_update(&S, pw[0], strlen(pw[0]) + 1);
-    if(pw[1])blake2b_update(&S, pw[1], strlen(pw[1]) + 1);
-    blake2b_final(&S, hash, ht->hash_size);
-}
-
-
-static void pwnt2hash_search(const struct hashtable *ht, void *index, uint8_t *hash){
-    struct clientparam *param  = (struct clientparam *)index;
-    unsigned char pass[40];    
-    char *pw[2] = {(char *)param->username, (char *)pass};
-
-    ntpwdhash(pass, param->password, 1);
-    pwnt2hash_add(ht, pw, hash);
-}
-
-
-
-struct hashtable dns_table = {char_index2hash, char_index2hash, 4, 12};
-struct hashtable dns6_table = {char_index2hash, char_index2hash, 16, 12};
-struct hashtable auth_table = {param2hash_add, param2hash_search, sizeof(struct authcache), 12};
-struct hashtable pw_table = {pw2hash_add, pw2hash_search, 0, 12};
-struct hashtable pwnt_table = {pwnt2hash_add, pwnt2hash_search, 0, 12};
-struct hashtable pwcr_table = {char_index2hash, user2hash_search, 64, 12};
-struct hashtable udp_table =  {udpparam2hash, udpparam2hash, sizeof(struct clientparam *), 12};

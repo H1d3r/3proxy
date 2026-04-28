@@ -299,6 +299,7 @@ int connectwithpoll(struct clientparam *param, SOCKET sock, struct sockaddr *sa,
 
 
 int myrand(void * entropy, int len);
+uint32_t murmurhash3(const void *key, int len, uint32_t seed);
 
 extern char *copyright;
 

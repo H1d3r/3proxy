@@ -17,6 +17,19 @@
 #define RETURN(xxx) { param->res = xxx; goto CLEANRET; }
 
 
+static void udpparam2hash(const struct hashtable *ht, void *index, uint8_t *hash){
+    struct clientparam *param = (struct clientparam *)index;
+    uint32_t m1, m2;
+    m1 = murmurhash3(SAADDR(&param->srv->intsa), SAADDRLEN(&param->srv->intsa), 0x3a3a3a3a);
+    m1 = murmurhash3(SAPORT(&param->sincr), 2, m1);
+    m2 = murmurhash3(SAADDR(&param->sincr), SAADDRLEN(&param->sincr), m1);
+    m2 = murmurhash3(SAPORT(&param->srv->intsa), 2, m2);
+    memcpy(hash, &m1, 4);
+    memcpy(hash+4, &m2, 4);
+}
+
+struct hashtable udp_table =  {udpparam2hash, udpparam2hash, sizeof(struct clientparam *), 8};
+
 void * udppmchild(struct clientparam* param) {
 
  param->clisock = param->srv->srvsock;

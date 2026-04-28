@@ -5,6 +5,8 @@
 # library support. Add -DSAFESQL for poorely written ODBC library / drivers.
 
 BUILDDIR = ../bin/
+PREFIX ?= 3proxy_
+CRYPT_PREFIX ?= $(PREFIX)
 CC ?= gcc
 
 CFLAGS := -g  -fPIC -O2 -fno-strict-aliasing -c -pthread -DWITHSPLICE -D_GNU_SOURCE -DGETHOSTBYNAME_R -D_THREAD_SAFE -D_REENTRANT -DNOODBC  -DFD_SETSIZE=4096 -DWITH_POLL -DWITH_NETFILTER -D WITH_UN $(CFLAGS)
@@ -61,13 +63,15 @@ INSTALL		= /usr/bin/install
 INSTALL_BIN	= $(INSTALL) -m 755
 INSTALL_DATA	= $(INSTALL) -m 644
 INSTALL_OBJS	= bin/3proxy \
-		  bin/ftppr \
-		  bin/3proxy_crypt \
-		  bin/pop3p \
-		  bin/proxy \
-		  bin/socks \
-		  bin/tcppm \
-		  bin/tlspr
+		  bin/$(CRYPT_PREFIX)crypt \
+		  bin/$(PREFIX)ftppr \
+		  bin/$(PREFIX)pop3p \
+		  bin/$(PREFIX)proxy \
+		  bin/$(PREFIX)smtpp \
+		  bin/$(PREFIX)socks \
+		  bin/$(PREFIX)tcppm \
+		  bin/$(PREFIX)tlspr \
+		  bin/$(PREFIX)udppm
 		  
 
 INSTALL_CFG	 = scripts/3proxy.cfg.chroot
@@ -81,7 +85,7 @@ INSTALL_SYSTEMD_SCRIPT = scripts/3proxy.service
 
 CHROOTDIR	= $(DESTDIR)$(chroot_prefix)/3proxy
 CHROOTREL	= ../..$(chroot_prefix)/3proxy
-MANDIR3		= $(DESTDIR)$(man_prefix)/man/man3
+MANDIR5		= $(DESTDIR)$(man_prefix)/man/man5
 MANDIR8		= $(DESTDIR)$(man_prefix)/man/man8
 BINDIR		= $(DESTDIR)$(exec_prefix)/bin
 ETCDIR		= $(DESTDIR)/etc/3proxy
@@ -124,10 +128,13 @@ install-etc: install-etc-dir install-etc-default-config
 	done;
 
 install-man:
-	$(INSTALL_BIN) -d $(MANDIR3)
+	$(INSTALL_BIN) -d $(MANDIR5)
 	$(INSTALL_BIN) -d $(MANDIR8)
-	$(INSTALL_DATA) man/*.3 $(MANDIR3)
-	$(INSTALL_DATA) man/*.8 $(MANDIR8)
+	$(INSTALL_DATA) man/3proxy.cfg.5 $(MANDIR5)
+	$(INSTALL_DATA) man/3proxy.8 $(MANDIR8)
+	for f in proxy socks pop3p smtpp ftppr tcppm udppm tlspr; do \
+	  if [ -f man/$$f.8 ]; then $(INSTALL_DATA) man/$$f.8 $(MANDIR8)/$(PREFIX)$$f.8; fi; \
+	done
 
 install-init:
 	$(INSTALL_BIN) -d $(INITDDIR)

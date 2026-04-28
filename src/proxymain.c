@@ -261,8 +261,10 @@ int MODULEMAINFUNC (int argc, char** argv){
  unsigned char buf[256];
  char *hostname=NULL;
  int opt = 1, isudp = 0, iscbl = 0, iscbc = 0;
+#ifndef NOUDPMAIN
  unsigned char udpbuf[UDPBUFSIZE];
  int udplen = 0;
+#endif
  unsigned char *cbc_string = NULL, *cbl_string = NULL;
  PROXYSOCKADDRTYPE cbsa;
  FILE *fp = NULL;
@@ -348,7 +350,7 @@ int MODULEMAINFUNC (int argc, char** argv){
  srvinit(&srv, &defparam);
  srv.pf = childdef.pf;
  isudp = childdef.isudp;
-#ifndef STDMAIN
+#ifndef NOUDPMAIN
  if(isudp) {
 	if(!udp_table.ihashtable)inithashtable(&udp_table, 64, 256, 65536);
  }
@@ -680,9 +682,11 @@ int MODULEMAINFUNC (int argc, char** argv){
 			    IPPROTO_TCP
 			);
 		}
+#ifndef NOUDPMAIN
 		else {
 			sock=srv.so._socket(srv.so.state, SASOCK(&srv.intsa), SOCK_DGRAM, IPPROTO_UDP);
 		}
+#endif
 		if( sock == INVALID_SOCKET) {
 			perror("socket()");
 			return -2;
@@ -753,8 +757,10 @@ int MODULEMAINFUNC (int argc, char** argv){
 			return -4;
 		}
 	}
+#ifndef NOUDPMAIN
 	else
 		defparam.clisock = sock;
+#endif
 
 	if(!srv.silent && !iscbc){
 		sprintf((char *)buf, "Accepting connections [%"PRIu64"/%"PRIu64"]", (uint64_t)getpid(), (uint64_t)pthread_self());
@@ -926,7 +932,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 		srv.so._setsockopt(srv.so.state, new_sock, SOL_SOCKET, SO_LINGER, (char *)&lg, sizeof(lg));
 		srv.so._setsockopt(srv.so.state, new_sock, SOL_SOCKET, SO_OOBINLINE, (char *)&opt, sizeof(int));
 	}
-#ifndef STDMAIN
+#ifndef NOUDPMAIN
 	else {
 		struct clientparam *toparam;
 		udplen = sockrecvfrom(NULL, srv.srvsock, (struct sockaddr *)&defparam.sincr, udpbuf, UDPBUFSIZE, 0);
@@ -958,6 +964,8 @@ int MODULEMAINFUNC (int argc, char** argv){
 		freeparam(newparam);
 		continue;
 	}
+#endif
+#ifndef NOUDPMAIN
 	if(isudp) {
 		int authres;
 

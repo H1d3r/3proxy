@@ -56,6 +56,27 @@ option(3PROXY_USE_WSAPOLL "Use WSAPoll instead of select() (Windows only)" ON)
 option(3PROXY_USE_NETFILTER "Enable Linux netfilter support (Linux only)" ON)
 option(3PROXY_USE_UNIX_SOCKETS "Enable Unix domain socket support (Unix only)" ON)
 
+# Binary name prefix for standalone modules and crypt (default: 3proxy_)
+# For crypt: if prefix is empty, "my" is used instead (→ mycrypt)
+set(3PROXY_BINARY_PREFIX "3proxy_" CACHE STRING "Prefix for standalone module and crypt binary names")
+
+# Standalone module build options (OFF by default)
+option(3PROXY_BUILD_ALL   "Build all standalone binaries"   OFF)
+option(3PROXY_BUILD_PROXY  "Build standalone proxy binary"  OFF)
+option(3PROXY_BUILD_SOCKS  "Build standalone socks binary"  OFF)
+option(3PROXY_BUILD_POP3P  "Build standalone pop3p binary"  OFF)
+option(3PROXY_BUILD_SMTPP  "Build standalone smtpp binary"  OFF)
+option(3PROXY_BUILD_FTPPR  "Build standalone ftppr binary"  OFF)
+option(3PROXY_BUILD_TCPPM  "Build standalone tcppm binary"  OFF)
+option(3PROXY_BUILD_UDPPM  "Build standalone udppm binary"  OFF)
+option(3PROXY_BUILD_TLSPR  "Build standalone tlspr binary"  OFF)
+
+if(3PROXY_BUILD_ALL)
+    foreach(_M PROXY SOCKS POP3P SMTPP FTPPR TCPPM UDPPM TLSPR)
+        set(3PROXY_BUILD_${_M} ON)
+    endforeach()
+endif()
+
 # Output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -290,6 +311,7 @@ set(3PROXY_CORE_SOURCES
     src/redirect.c
     src/authradius.c
     src/hash.c
+    src/hashtables.c
     src/resolve.c
     src/sql.c
     src/conf.c
@@ -327,7 +349,7 @@ target_include_directories(base64_obj PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # These are used by the main 3proxy executable
 # ============================================================================
 
-# Server modules object library (without WITHMAIN)
+# Server modules object library (without WITHMAIN, without UDP)
 add_library(srv_modules OBJECT
     src/proxy.c
     src/pop3p.c
@@ -338,11 +360,15 @@ add_library(srv_modules OBJECT
     src/auto.c
     src/socks.c
     src/webadmin.c
-    src/udppm.c
     src/dnspr.c
 )
 
 target_include_directories(srv_modules PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+# UDP port mapper server module (without WITHMAIN)
+add_library(srvudppm_obj OBJECT src/udppm.c)
+target_include_directories(srvudppm_obj PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
@@ -368,6 +394,7 @@ add_executable(3proxy
     ${3PROXY_CORE_SOURCES}
     ${MD_SOURCES}
     $<TARGET_OBJECTS:srv_modules>
+    $<TARGET_OBJECTS:srvudppm_obj>
     $<TARGET_OBJECTS:mainfunc>
     $<TARGET_OBJECTS:common_obj>
     $<TARGET_OBJECTS:base64_obj>
@@ -417,9 +444,19 @@ target_include_directories(3proxy_crypt PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/libs
 )
 target_link_libraries(3proxy_crypt PRIVATE Threads::Threads)
+if("${3PROXY_BINARY_PREFIX}" STREQUAL "")
+    set_target_properties(3proxy_crypt PROPERTIES OUTPUT_NAME "mycrypt")
+else()
+    set_target_properties(3proxy_crypt PROPERTIES OUTPUT_NAME "${3PROXY_BINARY_PREFIX}crypt")
+endif()
 
 # Build standalone proxy executables
-foreach(PROXY_NAME proxy socks pop3p smtpp ftppr tcppm tlspr)
+foreach(PROXY_NAME proxy socks pop3p smtpp ftppr tcppm udppm tlspr)
+    string(TOUPPER "${PROXY_NAME}" _MODULE_OPT)
+    if(NOT 3PROXY_BUILD_${_MODULE_OPT})
+        continue()
+    endif()
+
     if(PROXY_NAME STREQUAL "ftppr" OR PROXY_NAME STREQUAL "proxy")
         # ftppr and proxy use ftp_obj
         add_executable(${PROXY_NAME}
@@ -434,6 +471,10 @@ foreach(PROXY_NAME proxy socks pop3p smtpp ftppr tcppm tlspr)
         )
     endif()
 
+    set_target_properties(${PROXY_NAME} PROPERTIES
+        OUTPUT_NAME "${3PROXY_BINARY_PREFIX}${PROXY_NAME}"
+    )
+
     target_include_directories(${PROXY_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
@@ -442,6 +483,10 @@ foreach(PROXY_NAME proxy socks pop3p smtpp ftppr tcppm tlspr)
         WITHMAIN
         NOPORTMAP
     )
+
+    if(NOT PROXY_NAME STREQUAL "udppm")
+        target_compile_definitions(${PROXY_NAME} PRIVATE NOUDPMAIN)
+    endif()
 
     target_link_libraries(${PROXY_NAME} PRIVATE Threads::Threads)
 
@@ -459,6 +504,10 @@ foreach(PROXY_NAME proxy socks pop3p smtpp ftppr tcppm tlspr)
 
     if(PROXY_NAME STREQUAL "proxy" OR PROXY_NAME STREQUAL "smtpp")
         target_sources(${PROXY_NAME} PRIVATE $<TARGET_OBJECTS:base64_obj>)
+    endif()
+
+    if(PROXY_NAME STREQUAL "udppm")
+        target_sources(${PROXY_NAME} PRIVATE src/hash.c)
     endif()
 endforeach()
 
@@ -503,9 +552,18 @@ if(PAM_FOUND)
 endif()
 
 # Installation rules
-install(TARGETS 3proxy 3proxy_crypt proxy socks pop3p smtpp ftppr tcppm tlspr
+install(TARGETS 3proxy 3proxy_crypt
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+foreach(PROXY_NAME proxy socks pop3p smtpp ftppr tcppm udppm tlspr)
+    string(TOUPPER "${PROXY_NAME}" _MODULE_OPT)
+    if(3PROXY_BUILD_${_MODULE_OPT})
+        install(TARGETS ${PROXY_NAME}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
+    endif()
+endforeach()
 
 # Install plugins
 file(GLOB PLUGINFILES "${PLUGIN_OUTPUT_DIR}/*${PLUGIN_SUFFIX}")
@@ -640,10 +698,23 @@ endif()
 
 # Install man pages
 if(NOT WIN32)
-    file(GLOB MAN3_FILES "${CMAKE_CURRENT_SOURCE_DIR}/man/*.3")
-    file(GLOB MAN8_FILES "${CMAKE_CURRENT_SOURCE_DIR}/man/*.8")
-    install(FILES ${MAN3_FILES} DESTINATION ${CMAKE_INSTALL_MANDIR}/man3)
-    install(FILES ${MAN8_FILES} DESTINATION ${CMAKE_INSTALL_MANDIR}/man8)
+    # Config man page (section 5) — no prefix
+    file(GLOB MAN5_FILES "${CMAKE_CURRENT_SOURCE_DIR}/man/*.5")
+    install(FILES ${MAN5_FILES} DESTINATION ${CMAKE_INSTALL_MANDIR}/man5)
+    # Main 3proxy man page — no prefix
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/man/3proxy.8"
+        DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
+    )
+    # Module man pages — installed with binary prefix
+    foreach(_MAN proxy socks pop3p smtpp ftppr tcppm udppm tlspr)
+        set(_MAN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/man/${_MAN}.8")
+        if(EXISTS "${_MAN_SRC}")
+            install(FILES "${_MAN_SRC}"
+                DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
+                RENAME "${3PROXY_BINARY_PREFIX}${_MAN}.8"
+            )
+        endif()
+    endforeach()
 endif()
 
 # Summary
@@ -676,4 +747,11 @@ message(STATUS "    PAM:     ${PAM_FOUND}")
 message(STATUS "    ODBC:    ${ODBC_FOUND}")
 message(STATUS "")
 message(STATUS "  Plugins to build: ${ALL_PLUGINS}")
+message(STATUS "")
+message(STATUS "  Standalone modules:")
+message(STATUS "    Binary prefix:   \"${3PROXY_BINARY_PREFIX}\"")
+foreach(_M proxy socks pop3p smtpp ftppr tcppm udppm tlspr)
+    string(TOUPPER "${_M}" _MO)
+    message(STATUS "    BUILD_${_MO}: ${3PROXY_BUILD_${_MO}}")
+endforeach()
 message(STATUS "")
