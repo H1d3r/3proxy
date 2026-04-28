@@ -727,6 +727,9 @@ log("timeout");
  else if(inclientpipe || inserverpipe) res = 94;
 #endif
 
+ if((param->nwrites > 0 && !SERVERTERM) || (param->nreads > 0 && !CLIENTTERM))
+	usleep(SLEEPTIME * 10);
+
 CLEANRET:
 
 #ifdef WITHSPLICE
