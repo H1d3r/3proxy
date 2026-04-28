@@ -323,12 +323,12 @@ struct datatype;
 struct dictionary;
 struct node;
 struct property;
-extern pthread_mutex_t config_mutex;
-extern pthread_mutex_t bandlim_mutex;
-extern pthread_mutex_t connlim_mutex;
-extern pthread_mutex_t tc_mutex;
-extern pthread_mutex_t log_mutex;
-extern pthread_mutex_t rad_mutex;
+extern _3proxy_mutex_t config_mutex;
+extern _3proxy_mutex_t bandlim_mutex;
+extern _3proxy_mutex_t connlim_mutex;
+extern _3proxy_mutex_t tc_mutex;
+extern _3proxy_mutex_t log_mutex;
+extern _3proxy_mutex_t rad_mutex;
 extern struct datatype datatypes[64];
 
 extern struct commands commandhandlers[];

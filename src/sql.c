@@ -98,7 +98,7 @@ void sqlerr (char *buf){
 	fprintf(conf.stdlog, "%s\n", buf);
 	fflush(conf.stdlog);
     }
-    pthread_mutex_unlock(&log_mutex);
+    _3proxy_mutex_unlock(&log_mutex);
 }
 
 unsigned char statbuf[8192];
@@ -109,7 +109,7 @@ void logsql(struct clientparam * param, const unsigned char *s) {
 
 
     if(param->nolog) return;
-    pthread_mutex_lock(&log_mutex);
+    _3proxy_mutex_lock(&log_mutex);
     len = dobuf(param, statbuf, s, (unsigned char *)"\'");
 
     if(attempt > 5){
@@ -146,7 +146,7 @@ void logsql(struct clientparam * param, const unsigned char *s) {
 	}
 	attempt = 0;
     }
-    pthread_mutex_unlock(&log_mutex);
+    _3proxy_mutex_unlock(&log_mutex);
 }
 
 #endif

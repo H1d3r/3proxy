@@ -12,7 +12,7 @@ static uint32_t hashindex(unsigned tablesize, const uint8_t* hash){
 
 
 void destroyhashtable(struct hashtable *ht){
-    pthread_mutex_lock(&ht->hash_mutex);
+    _3proxy_mutex_lock(&ht->hash_mutex);
     if(ht->ihashtable){
 	myfree(ht->ihashtable);
 	ht->ihashtable = NULL;
@@ -28,8 +28,8 @@ void destroyhashtable(struct hashtable *ht){
     ht->poolsize = 0;
     ht->tablesize = 0;
     ht->ihashempty = 0;
-    pthread_mutex_unlock(&ht->hash_mutex);
-    pthread_mutex_destroy(&ht->hash_mutex);
+    _3proxy_mutex_unlock(&ht->hash_mutex);
+    _3proxy_mutex_destroy(&ht->hash_mutex);
 }
 
 #define hvalue(ht,I) ((struct hashentry *)(ht->hashvalues + (I-1)*(sizeof(struct hashentry) + ht->recsize - 4)))
@@ -53,7 +53,7 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
 
     if(tablesize < 2 || poolsize < tablesize || growlimit < poolsize) return 1;
     if(ht->ihashtable){
-        pthread_mutex_lock(&ht->hash_mutex);
+        _3proxy_mutex_lock(&ht->hash_mutex);
 	if(ht->ihashtable){
 	    myfree(ht->ihashtable);
 	    ht->ihashtable = NULL;
@@ -70,8 +70,8 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
 	ht->tablesize = 0;
     }
     else {
-	pthread_mutex_init(&ht->hash_mutex, NULL);
-        pthread_mutex_lock(&ht->hash_mutex);
+	_3proxy_mutex_init(&ht->hash_mutex);
+        _3proxy_mutex_lock(&ht->hash_mutex);
     }
     if(!(ht->ihashtable = myalloc(tablesize *  sizeof(uint32_t)))
     || !(ht->hashvalues = myalloc(poolsize * (sizeof(struct hashentry) + ht->recsize - 4)))
@@ -81,7 +81,7 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
 	ht->ihashtable = NULL;
 	myfree(ht->hashvalues);
 	ht->hashvalues = NULL;
-	pthread_mutex_unlock(&ht->hash_mutex);
+	_3proxy_mutex_unlock(&ht->hash_mutex);
 	return 3;
     }
     ht->poolsize = poolsize;
@@ -94,7 +94,7 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
 	hvalue(ht,i)->inext = i+1;
     }
     ht->ihashempty = 1;
-    pthread_mutex_unlock(&ht->hash_mutex);
+    _3proxy_mutex_unlock(&ht->hash_mutex);
     return 0;
 }
 
@@ -179,7 +179,7 @@ void hashadd(struct hashtable *ht, void* name, void* value, time_t expires){
     }
 
     ht->index2hash_add(ht, name, hash);
-    pthread_mutex_lock(&ht->hash_mutex);
+    _3proxy_mutex_lock(&ht->hash_mutex);
     index = hashindex(ht->tablesize, hash);
 
     for(hep = ht->ihashtable + index; (he = *hep)!=0; ){
@@ -214,7 +214,7 @@ void hashadd(struct hashtable *ht, void* name, void* value, time_t expires){
 	hvalue(ht,hen)->expires = expires;
     }
 
-    pthread_mutex_unlock(&ht->hash_mutex);
+    _3proxy_mutex_unlock(&ht->hash_mutex);
 }
 
 int hashresolv(struct hashtable *ht, void* name, void* value, uint32_t *ttl){
@@ -227,7 +227,7 @@ int hashresolv(struct hashtable *ht, void* name, void* value, uint32_t *ttl){
 	return 0;
     }
     ht->index2hash_search(ht,name, hash);
-    pthread_mutex_lock(&ht->hash_mutex);
+    _3proxy_mutex_lock(&ht->hash_mutex);
     index = hashindex(ht->tablesize, hash);
     for(hep = ht->ihashtable + index; (he = *hep)!=0; ){
 	if(hvalue(ht, he)->expires < conf.time) {
@@ -239,12 +239,12 @@ int hashresolv(struct hashtable *ht, void* name, void* value, uint32_t *ttl){
 	else if(!memcmp(hash, hhash(ht,he), ht->hash_size)){
 	    if(ttl) *ttl = (uint32_t)(hvalue(ht,he)->expires - conf.time);
 	    memcpy(value, hvalue(ht,he)->value, ht->recsize);
-	    pthread_mutex_unlock(&ht->hash_mutex);
+	    _3proxy_mutex_unlock(&ht->hash_mutex);
 	    return 1;
 	}
 	else hep=&(hvalue(ht,he)->inext);
     }
-    pthread_mutex_unlock(&ht->hash_mutex);
+    _3proxy_mutex_unlock(&ht->hash_mutex);
     return 0;
 }
 
@@ -258,7 +258,7 @@ void hashdelete(struct hashtable *ht, void *name){
 	return;
     }
     ht->index2hash_search(ht, name, hash);
-    pthread_mutex_lock(&ht->hash_mutex);
+    _3proxy_mutex_lock(&ht->hash_mutex);
     index = hashindex(ht->tablesize, hash);
     for(hep = ht->ihashtable + index; (he = *hep) != 0; ){
 	if((hvalue(ht, he)->expires && hvalue(ht, he)->expires < conf.time) || !memcmp(hash, hhash(ht, he), ht->hash_size)) {
@@ -269,7 +269,7 @@ void hashdelete(struct hashtable *ht, void *name){
 	}
 	else hep = &(hvalue(ht, he)->inext);
     }
-    pthread_mutex_unlock(&ht->hash_mutex);
+    _3proxy_mutex_unlock(&ht->hash_mutex);
 }
 
 #define MURMUR_C1 0xcc9e2d51u

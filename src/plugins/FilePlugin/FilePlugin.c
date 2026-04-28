@@ -45,7 +45,7 @@ extern "C" {
 
 static struct pluginlink * pl;
 
-static pthread_mutex_t file_mutex;
+static _3proxy_mutex_t file_mutex;
 
 unsigned long preview = 0;
 
@@ -207,7 +207,7 @@ static void closefiles(struct fp_stream *fps){
 static int searchsocket(SOCKET s, struct fp_stream **pfps){
 	struct fp_stream *fps = NULL;
 	int ret = 0;
-	pthread_mutex_lock(&file_mutex);
+	_3proxy_mutex_lock(&file_mutex);
 	for(fps = fp_streams; fps; fps = fps->next){
 		if(fps->fpd.cp->clisock == s) {
 			ret = 1;
@@ -222,7 +222,7 @@ static int searchsocket(SOCKET s, struct fp_stream **pfps){
 			break;
 		}
 	}
-	pthread_mutex_unlock(&file_mutex);
+	_3proxy_mutex_unlock(&file_mutex);
 	*pfps = fps;
 	return ret;
 }
@@ -235,7 +235,7 @@ static void freecallback(struct fp_stream * fps, struct fp_callback * fpc){
 
 static void removefps(struct fp_stream * fps){
 	if(!fp_streams) return;
-	pthread_mutex_lock(&file_mutex);
+	_3proxy_mutex_lock(&file_mutex);
 	if(fp_streams == fps)fp_streams = fps->next;
 	else {
 		struct fp_stream *fps2;
@@ -248,7 +248,7 @@ static void removefps(struct fp_stream * fps){
 		}
 		
 	}
-	pthread_mutex_unlock(&file_mutex);
+	_3proxy_mutex_unlock(&file_mutex);
 	if(fps->callbacks){
 		freecallback(fps, fps->callbacks);
 		fps->callbacks = 0;
@@ -754,7 +754,7 @@ static int fp_registercallback (int what, int max_size, int preview_size, struct
  fpc->max_size = max_size;
  fpc->data = data;
  fpc->callback = cb;
- pthread_mutex_lock(&file_mutex);
+ _3proxy_mutex_lock(&file_mutex);
  fps = addfps(cp);
  if(fps){
 	 fpc->next = fps->callbacks;
@@ -763,7 +763,7 @@ static int fp_registercallback (int what, int max_size, int preview_size, struct
 	 if(preview_size > fps->preview_size) fps->preview_size = preview_size;
  }
  else free(fpc);
- pthread_mutex_unlock(&file_mutex);
+ _3proxy_mutex_unlock(&file_mutex);
  return fps?1:0;
 }
 
@@ -777,9 +777,9 @@ static void * fp_open(void * idata, struct srvparam * param){
 
 static FILTER_ACTION fp_client(void *fo, struct clientparam * param, void** fc){
 
-	pthread_mutex_lock(&file_mutex);
+	_3proxy_mutex_lock(&file_mutex);
 	(*fc) = (void *)addfps(param);
-	pthread_mutex_unlock(&file_mutex);
+	_3proxy_mutex_unlock(&file_mutex);
 	return CONTINUE;
 }
 
@@ -913,7 +913,7 @@ static int file_loaded=0;
 					 int argc, char** argv){
 
 	if(!file_loaded){
-		pthread_mutex_init(&file_mutex, NULL);
+		_3proxy_mutex_init(&file_mutex);
 		file_loaded = 1;
 		pl = pluginlink;
 		memcpy(&sso, pl->so, sizeof(struct sockfuncs));

@@ -20,13 +20,13 @@ int alwaysauth(struct clientparam * param){
 	res = doconnect(param);
 	if(!res){
 		if(conf.bandlimfunc && (conf.bandlimiter||conf.bandlimiterout)){
-			pthread_mutex_lock(&bandlim_mutex);
+			_3proxy_mutex_lock(&bandlim_mutex);
 			initbandlims(param);
-			pthread_mutex_unlock(&bandlim_mutex);
+			_3proxy_mutex_unlock(&bandlim_mutex);
 		}
 
 		if(conf.trafcountfunc && conf.trafcounter) {
-			pthread_mutex_lock(&tc_mutex);
+			_3proxy_mutex_lock(&tc_mutex);
 			for(tc = conf.trafcounter; tc; tc = tc->next) {
 				if(tc->disabled) continue;
 				if(ACLmatches(tc->ace, param)){
@@ -40,7 +40,7 @@ int alwaysauth(struct clientparam * param){
 						if(tc->ace->action != COUNTALL) continue;
 					}
 					if(tc->traflim64 <= tc->traf64) {
-					    pthread_mutex_unlock(&tc_mutex);
+					    _3proxy_mutex_unlock(&tc_mutex);
 					    return 10;
 					}
 					param->trafcountfunc = conf.trafcountfunc;
@@ -55,14 +55,14 @@ int alwaysauth(struct clientparam * param){
 						continue;
 					}
 					if(tc->traflim64 <= tc->traf64) {
-					    pthread_mutex_unlock(&tc_mutex);
+					    _3proxy_mutex_unlock(&tc_mutex);
 					    return 10;
 					}
 					param->trafcountfunc = conf.trafcountfunc;
 					param->maxtrafout64 = tc->traflim64 - tc->traf64;
 				}
 			}
-			pthread_mutex_unlock(&tc_mutex);
+			_3proxy_mutex_unlock(&tc_mutex);
 		}
 	}
 	return res;

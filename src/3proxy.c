@@ -66,9 +66,9 @@ void __stdcall CommandHandler( DWORD dwCommand )
 	Sleep(2000);
         SetStatus( SERVICE_STOPPED, 0, 0 );
 #ifndef NOODBC
-	pthread_mutex_lock(&log_mutex);
+	_3proxy_mutex_lock(&log_mutex);
 	close_sql();
-	pthread_mutex_unlock(&log_mutex);
+	_3proxy_mutex_unlock(&log_mutex);
 #endif
         break;
     case SERVICE_CONTROL_PAUSE:
@@ -118,13 +118,6 @@ void mysigpause (int sig){
 
 void mysigterm (int sig){
 	conf.paused++;
-	usleep(999*SLEEPTIME);
-	usleep(999*SLEEPTIME);
-#ifndef NOODBC
-	pthread_mutex_lock(&log_mutex);
-	close_sql();
-	pthread_mutex_unlock(&log_mutex);
-#endif
 	conf.timetoexit = 1;
 }
 
@@ -512,13 +505,13 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int 
 	return 1;
   }
 
-  pthread_mutex_init(&config_mutex, NULL);
-  pthread_mutex_init(&bandlim_mutex, NULL);
-  pthread_mutex_init(&connlim_mutex, NULL);
-  pthread_mutex_init(&tc_mutex, NULL);
-  pthread_mutex_init(&log_mutex, NULL);
+  _3proxy_mutex_init(&config_mutex);
+  _3proxy_mutex_init(&bandlim_mutex);
+  _3proxy_mutex_init(&connlim_mutex);
+  _3proxy_mutex_init(&tc_mutex);
+  _3proxy_mutex_init(&log_mutex);
 #ifndef NORADIUS
-  pthread_mutex_init(&rad_mutex, NULL);
+  _3proxy_mutex_init(&rad_mutex);
 #endif
 #ifdef _WIN32
   conf.threadinit = CreateSemaphore(NULL, 0, 1, NULL);
@@ -527,7 +520,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int 
     return 1;
   }
 #else
-  pthread_mutex_init(&conf.threadinit, NULL);
+  _3proxy_mutex_init(&conf.threadinit);
 #endif
 
   freeconf(&conf);

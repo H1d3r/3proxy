@@ -32,7 +32,7 @@ typedef struct _ssl_conn {
 	SSL *ssl;
 } ssl_conn;
 
-pthread_mutex_t ssl_file_mutex;
+_3proxy_mutex_t ssl_file_mutex;
 
 
 static char errbuf[256];
@@ -229,15 +229,15 @@ void _ssl_cert_free(SSL_CERT cert)
 
  
 /* This array will store all of the mutexes available to OpenSSL. */ 
-static pthread_mutex_t *mutex_buf= NULL;
+static _3proxy_mutex_t *mutex_buf= NULL;
  
  
 static void locking_function(int mode, int n, const char * file, int line)
 {
   if (mode & CRYPTO_LOCK)
-    pthread_mutex_lock(mutex_buf + n);
+    _3proxy_mutex_lock(mutex_buf + n);
   else
-    pthread_mutex_unlock(mutex_buf + n);
+    _3proxy_mutex_unlock(mutex_buf + n);
 }
  
 static unsigned long id_function(void)
@@ -253,11 +253,11 @@ int thread_setup(void)
 {
   int i;
  
-  mutex_buf = malloc(CRYPTO_num_locks(  ) * sizeof(pthread_mutex_t));
+  mutex_buf = malloc(CRYPTO_num_locks(  ) * sizeof(_3proxy_mutex_t));
   if (!mutex_buf)
     return 0;
   for (i = 0;  i < CRYPTO_num_locks(  );  i++)
-    pthread_mutex_init(mutex_buf +i, NULL);
+    _3proxy_mutex_init(mutex_buf +i);
   CRYPTO_set_id_callback(id_function);
   CRYPTO_set_locking_callback(locking_function);
   return 1;
@@ -272,7 +272,7 @@ int thread_cleanup(void)
   CRYPTO_set_id_callback(NULL);
   CRYPTO_set_locking_callback(NULL);
   for (i = 0;  i < CRYPTO_num_locks(  );  i++)
-    pthread_mutex_destroy(mutex_buf +i);
+    _3proxy_mutex_destroy(mutex_buf +i);
   free(mutex_buf);
   mutex_buf = NULL;
   return 1;
@@ -291,7 +291,7 @@ void ssl_init()
 	    thread_setup();
 	    SSLeay_add_ssl_algorithms();
 	    SSL_load_error_strings();
-	    pthread_mutex_init(&ssl_file_mutex, NULL);
+	    _3proxy_mutex_init(&ssl_file_mutex);
 	    bio_err=BIO_new_fp(stderr,BIO_NOCLOSE);
 	}
 }

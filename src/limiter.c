@@ -15,7 +15,7 @@ int startconnlims (struct clientparam *param){
 	int ret = 0;
 
 	param->connlim = 1;
-	pthread_mutex_lock(&connlim_mutex);
+	_3proxy_mutex_lock(&connlim_mutex);
 	for(ce = conf.connlimiter; ce; ce = ce->next) {
 		if(ACLmatches(ce->ace, param)){
 			if(ce->ace->action == NOCONNLIM)break;
@@ -51,14 +51,14 @@ int startconnlims (struct clientparam *param){
 		}
 		param->connlim = 0;
 	}
-	pthread_mutex_unlock(&connlim_mutex);
+	_3proxy_mutex_unlock(&connlim_mutex);
 	return ret;
 }
 
 void stopconnlims (struct clientparam *param){
 	struct connlim * ce;
 
-	pthread_mutex_lock(&connlim_mutex);
+	_3proxy_mutex_lock(&connlim_mutex);
 	for(ce = conf.connlimiter; ce; ce = ce->next) {
 		if(ACLmatches(ce->ace, param)){
 			if(ce->ace->action == NOCONNLIM)break;
@@ -68,7 +68,7 @@ void stopconnlims (struct clientparam *param){
 			}
 		}
 	}
-	pthread_mutex_unlock(&connlim_mutex);
+	_3proxy_mutex_unlock(&connlim_mutex);
 }
 
 void initbandlims (struct clientparam *param){
@@ -124,7 +124,7 @@ unsigned bandlimitfunc(struct clientparam *param, unsigned nbytesin, unsigned nb
 #endif
 
 	if(!nbytesin && !nbytesout) return 0;
-	pthread_mutex_lock(&bandlim_mutex);
+	_3proxy_mutex_lock(&bandlim_mutex);
 	if(param->bandlimver != conf.bandlimver){
 		initbandlims(param);
 		param->bandlimver = conf.bandlimver;
@@ -163,7 +163,7 @@ unsigned bandlimitfunc(struct clientparam *param, unsigned nbytesin, unsigned nb
 		param->bandlimsout[i]->basetime = sec;
 		param->bandlimsout[i]->nexttime = msec + nsleeptime + ((nbytesout > 512)? ((nbytesout+32)/64)*((64*8*1000000)/param->bandlimsout[i]->rate) : ((nbytesout+1)* (8*1000000))/param->bandlimsout[i]->rate);
 	}
-	pthread_mutex_unlock(&bandlim_mutex);
+	_3proxy_mutex_unlock(&bandlim_mutex);
 	return sleeptime/1000;
 }
 
@@ -171,7 +171,7 @@ void trafcountfunc(struct clientparam *param){
 	struct trafcount * tc;
 	int countout = 0;
 
-	pthread_mutex_lock(&tc_mutex);
+	_3proxy_mutex_lock(&tc_mutex);
 	for(tc = conf.trafcounter; tc; tc = tc->next) {
 		if(ACLmatches(tc->ace, param)){
 
@@ -199,6 +199,6 @@ void trafcountfunc(struct clientparam *param){
 		}
 	}
 
-	pthread_mutex_unlock(&tc_mutex);
+	_3proxy_mutex_unlock(&tc_mutex);
 }
 

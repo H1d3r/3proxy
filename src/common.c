@@ -38,35 +38,6 @@ int randomizer = 1;
 
 unsigned char **stringtable = NULL;
 
-#ifdef WITH_LINUX_FUTEX
-int sys_futex(void *addr1, int op, int val1, struct timespec *timeout, void *addr2, int val3)
-{
-	return syscall(SYS_futex, addr1, op, val1, timeout, addr2, val3);
-}
-int mutex_lock(int *val)
-{
-	int c;
-	if ((c = __sync_val_compare_and_swap(val, 0, 1)) != 0)
-		do {
-			if(c == 2 || __sync_val_compare_and_swap(val, 1, 2) != 0)
-				sys_futex(val, FUTEX_WAIT_PRIVATE, 2, NULL, NULL, 0);
-		} while ((c = __sync_val_compare_and_swap(val, 0, 2)) != 0);
-	
-	return 0;
-}
-
-int mutex_unlock(int *val)
-{
-	if(__sync_fetch_and_sub (val, 1) != 1){
-		*val = 0;
-		sys_futex(val, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
-	}
-	
-	
-	return 0;
-}
-#endif
-
 #ifdef WITH_UN
 void make_un(const unsigned char *path, struct sockaddr_un * sun){
         memset(sun, 0, sizeof(*sun));
@@ -691,7 +662,7 @@ int scanaddr(const unsigned char *s, uint32_t * ip, uint32_t * mask) {
 
 RESOLVFUNC resolvfunc = NULL;
 #ifndef _WIN32
-pthread_mutex_t gethostbyname_mutex;
+_3proxy_mutex_t gethostbyname_mutex;
 int ghbn_init = 0;
 #endif
 
@@ -747,10 +718,10 @@ uint32_t getip(unsigned char *name){
 #ifndef NOSTDRESOLVE
 #if !defined(_WIN32) && !defined(GETHOSTBYNAME_R)
 	if(!ghbn_init){
-		pthread_mutex_init(&gethostbyname_mutex, NULL);
+		_3proxy_mutex_init(&gethostbyname_mutex);
 		ghbn_init++;
 	}
-	pthread_mutex_lock(&gethostbyname_mutex);
+	_3proxy_mutex_lock(&gethostbyname_mutex);
 #endif
 	hp=gethostbyname((char *)name);
 	if (!hp && conf.demanddialprog) {
@@ -759,7 +730,7 @@ uint32_t getip(unsigned char *name){
 	}
 	retval = hp?*(uint32_t *)hp->h_addr:0;
 #if !defined(_WIN32) && !defined(GETHOSTBYNAME_R)
-	pthread_mutex_unlock(&gethostbyname_mutex);
+	_3proxy_mutex_unlock(&gethostbyname_mutex);
 #endif
 #ifdef GETHOSTBYNAME_R
 #undef gethostbyname

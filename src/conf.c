@@ -20,10 +20,10 @@
 #define DEFAULTCONFIG conf.stringtable[25]
 #endif
 
-pthread_mutex_t bandlim_mutex;
-pthread_mutex_t connlim_mutex;
-pthread_mutex_t tc_mutex;
-pthread_mutex_t config_mutex;
+_3proxy_mutex_t bandlim_mutex;
+_3proxy_mutex_t connlim_mutex;
+_3proxy_mutex_t tc_mutex;
+_3proxy_mutex_t config_mutex;
 
 int haveerror = 0;
 int linenum = 0;
@@ -164,15 +164,15 @@ int start_proxy_thread(struct child * chp){
 	pthread_attr_init(&pa);
 	pthread_attr_setstacksize(&pa,PTHREAD_STACK_MIN + (32768+conf.stacksize));
 	pthread_attr_setdetachstate(&pa,PTHREAD_CREATE_DETACHED);
-	pthread_mutex_lock(&conf.threadinit);
+	_3proxy_mutex_lock(&conf.threadinit);
 	pthread_create(&thread, &pa, startsrv, (void *)chp);
 	pthread_attr_destroy(&pa);
 #endif
 #ifdef _WIN32
 	WaitForSingleObject(conf.threadinit, INFINITE);
 #else
-	pthread_mutex_lock(&conf.threadinit);
-	pthread_mutex_unlock(&conf.threadinit);
+	_3proxy_mutex_lock(&conf.threadinit);
+	_3proxy_mutex_unlock(&conf.threadinit);
 #endif
 	if(haveerror)  {
 		fprintf(stderr, "Service not started on line: %d%s\n", linenum, haveerror == 2? ": insufficient memory":"");
@@ -337,10 +337,10 @@ static int h_log(int argc, unsigned char ** argv){
 		else if(*argv[1]=='&'){
 			conf.logfunc = logsql;
 			if(notchanged) return 0;
-			pthread_mutex_lock(&log_mutex);
+			_3proxy_mutex_lock(&log_mutex);
 			close_sql();
 			init_sql((char *)argv[1]+1);
-			pthread_mutex_unlock(&log_mutex);
+			_3proxy_mutex_unlock(&log_mutex);
 		}
 #endif
 #ifndef NORADIUS
@@ -1257,7 +1257,7 @@ static int h_ace(int argc, unsigned char **argv){
 			sscanf((char *)argv[1], "%u", &ncl->rate);
 			sscanf((char *)argv[2], "%u", &ncl->period);
 		}
-		pthread_mutex_lock(&connlim_mutex);
+		_3proxy_mutex_lock(&connlim_mutex);
 		if(!conf.connlimiter){
 			conf.connlimiter = ncl;
 		}
@@ -1267,7 +1267,7 @@ static int h_ace(int argc, unsigned char **argv){
 			for(cli = conf.connlimiter; cli->next; cli = cli->next);
 			cli->next = ncl;
 		}
-		pthread_mutex_unlock(&connlim_mutex);			
+		_3proxy_mutex_unlock(&connlim_mutex);			
 		break;
 
 	case BANDLIM:
@@ -1289,7 +1289,7 @@ static int h_ace(int argc, unsigned char **argv){
 				return(4);
 			}
 		}
-		pthread_mutex_lock(&bandlim_mutex);
+		_3proxy_mutex_lock(&bandlim_mutex);
 		if(!strcmp((char *)argv[0], "bandlimin") || !strcmp((char *)argv[0], "nobandlimin")){
 			if(!conf.bandlimiter){
 				conf.bandlimiter = nbl;
@@ -1313,7 +1313,7 @@ static int h_ace(int argc, unsigned char **argv){
 			}
 		}
 		conf.bandlimver++;
-		pthread_mutex_unlock(&bandlim_mutex);			
+		_3proxy_mutex_unlock(&bandlim_mutex);			
 		break;
 
 	case COUNTIN:
@@ -1365,7 +1365,7 @@ static int h_ace(int argc, unsigned char **argv){
 				}
 			}
 		}
-		pthread_mutex_lock(&tc_mutex);
+		_3proxy_mutex_lock(&tc_mutex);
 		if(!conf.trafcounter){
 			conf.trafcounter = tl;
 		}
@@ -1375,7 +1375,7 @@ static int h_ace(int argc, unsigned char **argv){
 			for(ntl = conf.trafcounter; ntl->next; ntl = ntl->next);
 			ntl->next = tl;
 		}
-		pthread_mutex_unlock(&tc_mutex);
+		_3proxy_mutex_unlock(&tc_mutex);
 			
 	}
 	return 0;
@@ -1856,27 +1856,27 @@ void freeconf(struct extparam *confp){
 
 
 
- pthread_mutex_lock(&tc_mutex);
+ _3proxy_mutex_lock(&tc_mutex);
  confp->trafcountfunc = NULL;
  tc = confp->trafcounter;
  confp->trafcounter = NULL;
  counterd = confp->counterd;
  confp->counterd = -1;
  confp->countertype = NONE;
- pthread_mutex_unlock(&tc_mutex);
+ _3proxy_mutex_unlock(&tc_mutex);
 
- pthread_mutex_lock(&bandlim_mutex);
+ _3proxy_mutex_lock(&bandlim_mutex);
  bl = confp->bandlimiter;
  blout = confp->bandlimiterout;
  confp->bandlimiter = NULL;
  confp->bandlimiterout = NULL;
  confp->bandlimfunc = NULL;
  confp->bandlimver++;
- pthread_mutex_unlock(&bandlim_mutex);
- pthread_mutex_lock(&connlim_mutex);
+ _3proxy_mutex_unlock(&bandlim_mutex);
+ _3proxy_mutex_lock(&connlim_mutex);
  cl = confp->connlimiter;
  confp->connlimiter = NULL;
- pthread_mutex_unlock(&connlim_mutex);
+ _3proxy_mutex_unlock(&connlim_mutex);
 
  destroyhashtable(&pw_table);
  destroyhashtable(&pwnt_table);
@@ -1949,7 +1949,7 @@ int reload (void){
 	FILE *fp;
 	int error = -2;
 
-	pthread_mutex_lock(&config_mutex);
+	_3proxy_mutex_lock(&config_mutex);
 	conf.paused++;
 	freeconf(&conf);
 	conf.paused++;
@@ -1963,6 +1963,6 @@ int reload (void){
 		}
 		if(!writable)fclose(fp);
 	}
-	pthread_mutex_unlock(&config_mutex);
+	_3proxy_mutex_unlock(&config_mutex);
 	return error;
 }

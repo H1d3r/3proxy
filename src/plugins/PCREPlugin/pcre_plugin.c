@@ -21,7 +21,7 @@ extern "C" {
 
 static struct pluginlink * pl;
 
-static pthread_mutex_t pcre_mutex;
+static _3proxy_mutex_t pcre_mutex;
 
 
 static struct filter pcre_first_filter = {
@@ -112,7 +112,7 @@ struct pcre_filter_data {
 };
 
 static void pcre_data_free(struct pcre_filter_data *pcrefd){
-	pthread_mutex_lock(&pcre_mutex);
+	_3proxy_mutex_lock(&pcre_mutex);
 	pcrefd->users--;
 	if(!pcrefd->users){
 		if(pcrefd->match_data) pcre2_match_data_free(pcrefd->match_data);
@@ -121,7 +121,7 @@ static void pcre_data_free(struct pcre_filter_data *pcrefd){
 		if(pcrefd->replace) pl->freefunc(pcrefd->replace);
 		pl->freefunc(pcrefd);
 	}
-	pthread_mutex_unlock(&pcre_mutex);
+	_3proxy_mutex_unlock(&pcre_mutex);
 }
 
 
@@ -130,9 +130,9 @@ static void pcre_data_free(struct pcre_filter_data *pcrefd){
 static void* pcre_filter_open(void * idata, struct srvparam * param){
 #define pcrefd ((struct pcre_filter_data *)idata)
 	if(idata){
-		pthread_mutex_lock(&pcre_mutex);
+		_3proxy_mutex_lock(&pcre_mutex);
 		pcrefd->users++;
-		pthread_mutex_unlock(&pcre_mutex);
+		_3proxy_mutex_unlock(&pcre_mutex);
 	}
 #undef pcrefd
 	return idata;
@@ -517,7 +517,7 @@ PLUGINAPI int PLUGINCALL pcre_plugin (struct pluginlink * pluginlink,
 	pcre_options = 0;
 	if(!pcre_loaded){
 		pcre_loaded = 1;
-		pthread_mutex_init(&pcre_mutex, NULL);
+		_3proxy_mutex_init(&pcre_mutex);
 		regexp_symbols[2].next = pl->symbols.next;
 		pl->symbols.next = regexp_symbols;
 		pcre_commandhandlers[3].next = pl->commandhandlers->next;

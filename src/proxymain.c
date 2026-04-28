@@ -119,7 +119,7 @@ int pushthreadinit(){
 #ifdef _WIN32
     return ReleaseSemaphore(conf.threadinit, 1, NULL) ? 1 : 0;
 #else
-    pthread_mutex_unlock(&conf.threadinit);
+    _3proxy_mutex_unlock(&conf.threadinit);
     return 1;
 #endif
 }
@@ -383,7 +383,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 #endif
 #else
  srv.needuser = 0;
- pthread_mutex_init(&log_mutex, NULL);
+ _3proxy_mutex_init(&log_mutex);
 #endif
 
  for (i=1; i<argc; i++) {
@@ -937,15 +937,15 @@ int MODULEMAINFUNC (int argc, char** argv){
 		struct clientparam *toparam;
 		udplen = sockrecvfrom(NULL, srv.srvsock, (struct sockaddr *)&defparam.sincr, udpbuf, UDPBUFSIZE, 0);
 		if(udplen <= 0) continue;
-		pthread_mutex_lock(&srv.counter_mutex);
+		_3proxy_mutex_lock(&srv.counter_mutex);
 		if(hashresolv(&udp_table, &defparam, &toparam, NULL)) {
 			socksendto(toparam, toparam->remsock, (struct sockaddr *)&toparam->sinsr, udpbuf, udplen, 0);
 			toparam->statscli64 += udplen;
 			toparam->nwrites++;
-			pthread_mutex_unlock(&srv.counter_mutex);
+			_3proxy_mutex_unlock(&srv.counter_mutex);
 			continue;
 		}
-		pthread_mutex_unlock(&srv.counter_mutex);
+		_3proxy_mutex_unlock(&srv.counter_mutex);
 	}
 #endif
 	if(! (newparam = myalloc (sizeof(defparam)))){
@@ -996,7 +996,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 #endif
 	newparam->prev = newparam->next = NULL;
 	error = 0;
-	pthread_mutex_lock(&srv.counter_mutex);
+	_3proxy_mutex_lock(&srv.counter_mutex);
 	if(!srv.child){
 		srv.child = newparam;
 	}
@@ -1020,7 +1020,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 		if(!srv.silent)dolog(&defparam, buf);
 		error = 1;
 	}
-	pthread_mutex_unlock(&srv.counter_mutex);
+	_3proxy_mutex_unlock(&srv.counter_mutex);
 	if(error) freeparam(newparam);
 #else
 
@@ -1031,14 +1031,14 @@ int MODULEMAINFUNC (int argc, char** argv){
 		if(newparam->prev) newparam->prev->next = newparam->next;
 		else srv.child = newparam->next;
 		if(newparam->next) newparam->next->prev = newparam->prev;
-		pthread_mutex_unlock(&srv.counter_mutex);
+		_3proxy_mutex_unlock(&srv.counter_mutex);
 		newparam->srv = NULL;
 		freeparam(newparam);
 	}
 	else {
 		srv.childcount++;
 		newparam->threadid = (uint64_t)thread;
-		pthread_mutex_unlock(&srv.counter_mutex);
+		_3proxy_mutex_unlock(&srv.counter_mutex);
 	}
 #endif
 
@@ -1048,11 +1048,11 @@ int MODULEMAINFUNC (int argc, char** argv){
 
 
 #ifndef STDMAIN
- pthread_mutex_lock(&config_mutex);
+ _3proxy_mutex_lock(&config_mutex);
  if(srv.next)srv.next->prev = srv.prev;
  if(srv.prev)srv.prev->next = srv.next;
  else conf.services = srv.next;
- pthread_mutex_unlock(&config_mutex);
+ _3proxy_mutex_unlock(&config_mutex);
 #endif
 
  if(!srv.silent) srv.logfunc(&defparam, (unsigned char *)"Exiting thread");
@@ -1101,7 +1101,7 @@ void srvinit(struct srvparam * srv, struct clientparam *param){
  param->paused = srv->paused;
  param->remsock = param->clisock = param->ctrlsock = param->ctrlsocksrv = INVALID_SOCKET;
  *SAFAMILY(&param->req) = *SAFAMILY(&param->sinsl) = *SAFAMILY(&param->sinsr) = *SAFAMILY(&param->sincr) = *SAFAMILY(&param->sincl) = AF_INET;
- pthread_mutex_init(&srv->counter_mutex, NULL);
+ _3proxy_mutex_init(&srv->counter_mutex);
  srv->intsa = conf.intsa;
  srv->extsa = conf.extsa;
 #ifndef NOIPV6
@@ -1166,7 +1166,7 @@ void srvfree(struct srvparam * srv){
  if(srv->acl)freeacl(srv->acl);
  if(srv->authfuncs)freeauth(srv->authfuncs);
 #endif
- pthread_mutex_destroy(&srv->counter_mutex);
+ _3proxy_mutex_destroy(&srv->counter_mutex);
  if(srv->target) myfree(srv->target);
  if(srv->logtarget) myfree(srv->logtarget);
  if(srv->logformat) myfree(srv->logformat);
@@ -1183,7 +1183,7 @@ void freeparam(struct clientparam * param) {
 	if(param->res == 2) return;
 	if(param->srv){
 		if(param->srv->so.freefunc) param->srv->so.freefunc(param->sostate);
-		pthread_mutex_lock(&param->srv->counter_mutex);
+		_3proxy_mutex_lock(&param->srv->counter_mutex);
 #ifndef STDMAIN
 		if(param->srv->service == S_UDPPM) hashdelete(&udp_table, param);
 #endif
@@ -1196,7 +1196,7 @@ void freeparam(struct clientparam * param) {
 			param->next->prev = param->prev;
 		}
 		(param->srv->childcount)--;
-		pthread_mutex_unlock(&param->srv->counter_mutex);
+		_3proxy_mutex_unlock(&param->srv->counter_mutex);
 	}
 	if(param->clibuf) myfree(param->clibuf);
 	if(param->srvbuf) myfree(param->srvbuf);

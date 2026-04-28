@@ -10,7 +10,7 @@
 
 
 #include "proxy.h"
-pthread_mutex_t log_mutex;
+_3proxy_mutex_t log_mutex;
 int havelog = 0;
 
 

@@ -166,7 +166,7 @@ static int ntry = 0;
 int nradservers = 0;
 char radiussecret[64]="";
 
-pthread_mutex_t rad_mutex;
+_3proxy_mutex_t rad_mutex;
 
 void md5_calc(unsigned char *output, unsigned char *input,
 		     unsigned int inputlen);
@@ -327,11 +327,11 @@ int radsend(struct clientparam * param, int auth, int stop){
 	memset(&packet, 0, sizeof(packet));
 
 
-	pthread_mutex_lock(&rad_mutex);
+	_3proxy_mutex_lock(&rad_mutex);
 	if(auth)random_vector(packet.vector, param);
 
 	id = ((ntry++) & 0xff);
-	pthread_mutex_unlock(&rad_mutex);
+	_3proxy_mutex_unlock(&rad_mutex);
 
 	packet.code = auth?PW_AUTHENTICATION_REQUEST:PW_ACCOUNTING_REQUEST;
 	packet.id=id;

@@ -37,29 +37,19 @@ extern "C" {
 #define SASIZETYPE socklen_t
 #define SOCKET int
 #define INVALID_SOCKET  (-1)
-#ifdef WITH_LINUX_FUTEX
-#define _GNU_SOURCE
-#include <unistd.h>
-#include <sys/syscall.h>
-#include <linux/kernel.h>
-#include <linux/futex.h>
-#define pthread_mutex_t int
-#define pthread_mutex_init(x, y) (*(x)=0)
-#define pthread_mutex_destroy(x) (*(x)=0)
-#define pthread_mutex_lock(x) mutex_lock(x)
-#define pthread_mutex_unlock(x) mutex_unlock(x)
-int mutex_lock(int *val);
-int mutex_unlock(int *val);
-#else
-#endif
+#define _3proxy_mutex_t pthread_mutex_t
+#define _3proxy_mutex_init(x) pthread_mutex_init(x,NULL)
+#define _3proxy_mutex_destroy pthread_mutex_destroy
+#define _3proxy_mutex_lock pthread_mutex_lock
+#define _3proxy_mutex_unlock pthread_mutex_unlock
 #else
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#define pthread_mutex_t CRITICAL_SECTION
-#define pthread_mutex_init(x, y) InitializeCriticalSection(x)
-#define pthread_mutex_lock(x) EnterCriticalSection(x)
-#define pthread_mutex_unlock(x) LeaveCriticalSection(x)
-#define pthread_mutex_destroy(x) DeleteCriticalSection(x)
+#define _3proxy_mutex_t CRITICAL_SECTION
+#define _3proxy_mutex_init(x) InitializeCriticalSection(x)
+#define _3proxy_mutex_lock(x) EnterCriticalSection(x)
+#define _3proxy_mutex_unlock(x) LeaveCriticalSection(x)
+#define _3proxy_mutex_destroy(x) DeleteCriticalSection(x)
 #ifdef MSVC
 #pragma warning (disable : 4996)
 #endif
@@ -511,7 +501,7 @@ struct hashtable {
 	uint32_t * ihashtable;
 	uint8_t * hashvalues;
 	uint8_t * hashhashvalues;
-	pthread_mutex_t hash_mutex;
+	_3proxy_mutex_t hash_mutex;
 	time_t compacted;
 	uint32_t ihashhashempty;
 	uint32_t ihashempty;
@@ -556,7 +546,7 @@ struct srvparam {
 	PROXYSOCKADDRTYPE extsa6;
 #endif
 	PROXYSOCKADDRTYPE extsa;
-	pthread_mutex_t counter_mutex;
+	_3proxy_mutex_t counter_mutex;
 	struct pollfd fds;
 	FILE *stdlog;
 	unsigned char * target;
@@ -675,7 +665,7 @@ struct extparam {
 #ifdef _WIN32
 	HANDLE threadinit;
 #else
-	pthread_mutex_t threadinit;
+	_3proxy_mutex_t threadinit;
 #endif
 	int *timeouts;
 	struct ace * acl;
