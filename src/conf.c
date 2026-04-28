@@ -151,9 +151,7 @@ int start_proxy_thread(struct child * chp){
   pthread_t thread;
 #ifdef _WIN32
   HANDLE h;
-  DWORD num;
 #endif
-  char r[1];
 
 #ifdef _WIN32
 #ifndef _WINCE
@@ -166,16 +164,15 @@ int start_proxy_thread(struct child * chp){
 	pthread_attr_init(&pa);
 	pthread_attr_setstacksize(&pa,PTHREAD_STACK_MIN + (32768+conf.stacksize));
 	pthread_attr_setdetachstate(&pa,PTHREAD_CREATE_DETACHED);
+	pthread_mutex_lock(&conf.threadinit);
 	pthread_create(&thread, &pa, startsrv, (void *)chp);
 	pthread_attr_destroy(&pa);
 #endif
 #ifdef _WIN32
-	ReadFile(conf.threadinit[0], r, 1, &num, NULL);
+	WaitForSingleObject(conf.threadinit, INFINITE);
 #else
-	while(read(conf.threadinit[0], r, 1) !=1) if(errno != EINTR) {
-	    fprintf(stderr, "pipe failed\n");
-	    return 40;
-	}
+	pthread_mutex_lock(&conf.threadinit);
+	pthread_mutex_unlock(&conf.threadinit);
 #endif
 	if(haveerror)  {
 		fprintf(stderr, "Service not started on line: %d%s\n", linenum, haveerror == 2? ": insufficient memory":"");

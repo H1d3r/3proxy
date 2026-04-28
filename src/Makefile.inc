@@ -2,13 +2,7 @@
 # 3 proxy common Makefile
 #
 
-# PREFIX:       prefix for standalone module binaries (default: 3proxy_)
-# CRYPT_PREFIX: prefix for crypt binary (default: same as PREFIX)
-PREFIX ?= 3proxy_
-CRYPT_PREFIX ?= $(PREFIX)
-
 all:	$(BUILDDIR)3proxy$(EXESUFFICS) $(BUILDDIR)$(CRYPT_PREFIX)crypt$(EXESUFFICS) $(BUILDDIR)$(PREFIX)pop3p$(EXESUFFICS) $(BUILDDIR)$(PREFIX)smtpp$(EXESUFFICS) $(BUILDDIR)$(PREFIX)ftppr$(EXESUFFICS) $(BUILDDIR)$(PREFIX)tcppm$(EXESUFFICS) $(BUILDDIR)$(PREFIX)udppm$(EXESUFFICS) $(BUILDDIR)$(PREFIX)tlspr$(EXESUFFICS) $(BUILDDIR)$(PREFIX)socks$(EXESUFFICS) $(BUILDDIR)$(PREFIX)proxy$(EXESUFFICS) allplugins
-
 
 sockmap$(OBJSUFFICS): sockmap.c proxy.h structures.h
 	$(CC) $(CFLAGS) sockmap.c

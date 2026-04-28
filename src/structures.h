@@ -673,9 +673,9 @@ struct filemon {
 
 struct extparam {
 #ifdef _WIN32
-	HANDLE threadinit[2];
+	HANDLE threadinit;
 #else
-	int threadinit[2];
+	pthread_mutex_t threadinit;
 #endif
 	int *timeouts;
 	struct ace * acl;

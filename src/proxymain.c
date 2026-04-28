@@ -117,10 +117,10 @@ void * threadfunc (void *p) {
 
 int pushthreadinit(){
 #ifdef _WIN32
-    DWORD n;
-    return WriteFile(conf.threadinit[1], "1", 1, &n, NULL);
+    return ReleaseSemaphore(conf.threadinit, 1, NULL) ? 1 : 0;
 #else
-    return write(conf.threadinit[1], "1", 1);
+    pthread_mutex_unlock(&conf.threadinit);
+    return 1;
 #endif
 }
 

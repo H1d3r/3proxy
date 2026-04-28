@@ -521,13 +521,14 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int 
   pthread_mutex_init(&rad_mutex, NULL);
 #endif
 #ifdef _WIN32
-  if(!CreatePipe(&conf.threadinit[0], &conf.threadinit[1], NULL, 1)){
-#else
-  if(pipe(conf.threadinit)) {
-#endif
-    fprintf(stderr, "CreatePipe failed\n");
+  conf.threadinit = CreateSemaphore(NULL, 0, 1, NULL);
+  if(!conf.threadinit){
+    fprintf(stderr, "semaphore init failed\n");
     return 1;
-  };
+  }
+#else
+  pthread_mutex_init(&conf.threadinit, NULL);
+#endif
 
   freeconf(&conf);
   res = readconfig(fp);

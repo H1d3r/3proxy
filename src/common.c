@@ -144,7 +144,11 @@ int timeouts[12] = {
 };
 
 struct extparam conf = {
-	.threadinit = {0, 0},
+#ifdef _WIN32
+	.threadinit = NULL,
+#else
+	.threadinit = 0,
+#endif
 	.timeouts = timeouts,
 	.acl = NULL,
 	.conffile = NULL,
