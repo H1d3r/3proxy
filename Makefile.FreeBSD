@@ -68,6 +68,7 @@ install: all
 	for f in proxy socks pop3p smtpp ftppr tcppm udppm tlspr; do \
 	  if [ -f man/$$f.8 ]; then install -m 644 man/$$f.8 $(MANDIR)/man8/$(PREFIX)$$f.8; fi; \
 	done
+	install -m 644 man/3proxy_crypt.8 $(MANDIR)/man8
 	install -d $(MANDIR)/man5
 	install -m 644 man/3proxy.cfg.5 $(MANDIR)/man5/3proxy.cfg.5
 	echo Run /usr/local/3proxy/bin/add3proxyuser.sh to add \'admin\' user

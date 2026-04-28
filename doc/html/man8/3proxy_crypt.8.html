@@ -1,0 +1,168 @@
+<!-- Creator     : groff version 1.24.1 -->
+<html>
+<head>
+
+</head>
+<body>
+
+<h1 align="center">3proxy_crypt</h1>
+
+<a href="#NAME">NAME</a><br>
+<a href="#SYNOPSIS">SYNOPSIS</a><br>
+<a href="#DESCRIPTION">DESCRIPTION</a><br>
+<a href="#OPTIONS">OPTIONS</a><br>
+<a href="#EXAMPLE">EXAMPLE</a><br>
+<a href="#NOTES">NOTES</a><br>
+<a href="#BUGS">BUGS</a><br>
+<a href="#SEE ALSO">SEE ALSO</a><br>
+<a href="#AUTHORS">AUTHORS</a><br>
+
+<hr>
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:6%; margin-top: 1em"><b>3proxy_crypt</b>
+- utility to generate encrypted passwords for 3proxy</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:6%; margin-top: 1em"><b>3proxy_crypt</b>
+<i>password</i> <b><br>
+3proxy_crypt</b> <i>salt password</i></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:6%; margin-top: 1em"><i><b>3proxy_crypt</b></i>
+is a utility to generate encrypted password hashes for use
+with 3proxy configuration. Encrypted passwords allow the
+system to avoid storing passwords in cleartext in
+configuration files.</p>
+
+<p style="margin-left:6%; margin-top: 1em">When invoked
+with a single argument, it produces an NT password hash
+(MD4-based, suitable for NTLM authentication). The output is
+prefixed with <b>NT:</b>.</p>
+
+<p style="margin-left:6%; margin-top: 1em">When invoked
+with two arguments (salt and password), it produces a
+BLAKE2b password hash. The salt length is limited to 64
+characters. The output is prefixed with <b>CR:</b>.</p>
+
+<p style="margin-left:6%; margin-top: 1em">The resulting
+hash can be used in the 3proxy configuration file with the
+<b>users</b> directive instead of a cleartext password.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:6%; margin-top: 1em"><i>password</i></p>
+
+<p style="margin-left:15%;">Cleartext password to
+encrypt.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="6%"></td>
+<td width="5%">
+
+
+<p><i>salt</i></p></td>
+<td width="4%"></td>
+<td width="65%">
+
+
+<p>Salt string for BLAKE2b hashing (max 64 characters).</p></td>
+<td width="20%">
+</td></tr>
+</table>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:6%; margin-top: 1em">Generate NT
+password hash:</p>
+
+<p style="margin-left:15%;">3proxy_crypt
+MySecretPassword</p>
+
+<p style="margin-left:6%;">Result:</p>
+
+
+<p style="margin-left:15%;">NT:3F7E6D8D96E8E7A9B0C1D2E3F4A5B6C7</p>
+
+<p style="margin-left:6%;">Generate BLAKE2b password hash
+with salt:</p>
+
+<p style="margin-left:15%;">3proxy_crypt MySalt
+MySecretPassword</p>
+
+<p style="margin-left:6%;">Result:</p>
+
+<p style="margin-left:15%;">CR:$3$MySalt$...</p>
+
+<p style="margin-left:6%;">Using in 3proxy.cfg:</p>
+
+<p style="margin-left:15%;">users
+user1:CR:$3$MySalt$...</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:6%; margin-top: 1em">The NT hash uses
+the RSA MD4 Message-Digest Algorithm. The BLAKE2b hash uses
+the BLAKE2 cryptographic hash function.</p>
+
+<p style="margin-left:6%; margin-top: 1em">When a password
+hash is prefixed with <b>NT:</b> or <b>CR:</b>, 3proxy uses
+the corresponding algorithm to verify passwords instead of
+comparing cleartext strings.</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:6%; margin-top: 1em">Report all bugs
+to <b>3proxy@3proxy.org</b></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:6%; margin-top: 1em">3proxy(8),
+3proxy.cfg(5), <br>
+https://3proxy.org/</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:6%; margin-top: 1em">3proxy is
+designed by Vladimir 3APA3A Dubrovin
+(<i>3proxy@3proxy.org</i>)</p>
+<hr>
+</body>
+</html>

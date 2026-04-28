@@ -705,14 +705,23 @@ if(NOT WIN32)
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/man/3proxy.8"
         DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
     )
-    # Module man pages — installed with binary prefix
+    # 3proxy_crypt man page — no prefix (already has 3proxy_)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/man/3proxy_crypt.8")
+        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/man/3proxy_crypt.8"
+            DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
+        )
+    endif()
+    # Module man pages — installed with binary prefix only if module is built
     foreach(_MAN proxy socks pop3p smtpp ftppr tcppm udppm tlspr)
-        set(_MAN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/man/${_MAN}.8")
-        if(EXISTS "${_MAN_SRC}")
-            install(FILES "${_MAN_SRC}"
-                DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
-                RENAME "${3PROXY_BINARY_PREFIX}${_MAN}.8"
-            )
+        string(TOUPPER "${_MAN}" _MODULE_OPT)
+        if(3PROXY_BUILD_${_MODULE_OPT})
+            set(_MAN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/man/${_MAN}.8")
+            if(EXISTS "${_MAN_SRC}")
+                install(FILES "${_MAN_SRC}"
+                    DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
+                    RENAME "${3PROXY_BINARY_PREFIX}${_MAN}.8"
+                )
+            endif()
         endif()
     endforeach()
 endif()

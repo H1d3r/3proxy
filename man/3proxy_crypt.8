@@ -1,0 +1,81 @@
+.TH 3proxy_crypt "8" "April 2026" "3proxy 0.9" "Universal proxy server"
+.SH NAME
+.B 3proxy_crypt
+\- utility to generate encrypted passwords for 3proxy
+.SH SYNOPSIS
+.B 3proxy_crypt
+.I password
+.br
+.B 3proxy_crypt
+.I salt password
+.SH DESCRIPTION
+.B 3proxy_crypt
+is a utility to generate encrypted password hashes for use with 3proxy
+configuration. Encrypted passwords allow the system to avoid storing
+passwords in cleartext in configuration files.
+.PP
+When invoked with a single argument, it produces an NT password hash
+(MD4-based, suitable for NTLM authentication). The output is prefixed with
+.BR NT: .
+.PP
+When invoked with two arguments (salt and password), it produces a BLAKE2b
+password hash. The salt length is limited to 64 characters. The output is
+prefixed with
+.BR CR: .
+.PP
+The resulting hash can be used in the 3proxy configuration file with the
+.B users
+directive instead of a cleartext password.
+.SH OPTIONS
+.TP
+.I password
+Cleartext password to encrypt.
+.TP
+.I salt
+Salt string for BLAKE2b hashing (max 64 characters).
+.SH EXAMPLE
+.TP
+Generate NT password hash:
+.RS
+3proxy_crypt MySecretPassword
+.RE
+.TP
+Result:
+.RS
+NT:3F7E6D8D96E8E7A9B0C1D2E3F4A5B6C7
+.RE
+.TP
+Generate BLAKE2b password hash with salt:
+.RS
+3proxy_crypt MySalt MySecretPassword
+.RE
+.TP
+Result:
+.RS
+CR:$3$MySalt$...
+.RE
+.TP
+Using in 3proxy.cfg:
+.RS
+users user1:CR:$3$MySalt$...
+.RE
+.SH NOTES
+The NT hash uses the RSA MD4 Message-Digest Algorithm. The BLAKE2b hash
+uses the BLAKE2 cryptographic hash function.
+.PP
+When a password hash is prefixed with
+.B NT:
+or
+.BR CR: ,
+3proxy uses the corresponding algorithm to verify passwords instead of
+comparing cleartext strings.
+.SH BUGS
+Report all bugs to
+.BR 3proxy@3proxy.org
+.SH SEE ALSO
+3proxy(8), 3proxy.cfg(5),
+.br
+https://3proxy.org/
+.SH AUTHORS
+3proxy is designed by Vladimir 3APA3A Dubrovin
+.RI ( 3proxy@3proxy.org )

@@ -135,6 +135,7 @@ install-man:
 	for f in proxy socks pop3p smtpp ftppr tcppm udppm tlspr; do \
 	  if [ -f man/$$f.8 ]; then $(INSTALL_DATA) man/$$f.8 $(MANDIR8)/$(PREFIX)$$f.8; fi; \
 	done
+	$(INSTALL_DATA) man/3proxy_crypt.8 $(MANDIR8)
 
 install-init:
 	$(INSTALL_BIN) -d $(INITDDIR)
