@@ -115,16 +115,6 @@ void * threadfunc (void *p) {
 }
 #undef param
 
-int pushthreadinit(){
-#ifdef _WIN32
-    return ReleaseSemaphore(conf.threadinit, 1, NULL) ? 1 : 0;
-#else
-    _3proxy_mutex_unlock(&conf.threadinit);
-    return 1;
-#endif
-}
-
-
 struct socketoptions sockopts[] = {
 #ifdef TCP_NODELAY
 	{TCP_NODELAY, "TCP_NODELAY"},
@@ -262,7 +252,7 @@ int MODULEMAINFUNC (int argc, char** argv){
  char *hostname=NULL;
  int opt = 1, isudp = 0, iscbl = 0, iscbc = 0;
 #ifndef NOUDPMAIN
- unsigned char udpbuf[UDPBUFSIZE];
+ unsigned char *udpbuf = NULL;
  int udplen = 0;
 #endif
  unsigned char *cbc_string = NULL, *cbl_string = NULL;
@@ -353,6 +343,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 #ifndef NOUDPMAIN
  if(isudp) {
 	if(!udp_table.ihashtable)inithashtable(&udp_table, 64, 256, 65536);
+	if(!(udpbuf = myalloc(UDPBUFSIZE))) return 21;
  }
 #endif
  srv.service = defparam.service = childdef.service;
@@ -567,7 +558,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 	if (error || i!=argc) {
 #ifndef STDMAIN
 		haveerror = 1;
-		pushthreadinit();
+		_3proxy_sem_unlock(conf.threadinit);
 #endif
 		fprintf(stderr, "%s of %s\n"
 			"Usage: %s options\n"
@@ -599,7 +590,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 	if (error || argc != i+3 || *argv[i]=='-'|| (*SAPORT(&srv.intsa) = htons((uint16_t)atoi(argv[i])))==0 || (srv.targetport = htons((uint16_t)atoi(argv[i+2])))==0) {
 #ifndef STDMAIN
 		haveerror = 1;
-		pushthreadinit();
+		_3proxy_sem_unlock(conf.threadinit);
 #endif
 		fprintf(stderr, "%s of %s\n"
 			"Usage: %s options"
@@ -665,7 +656,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 #ifndef STDMAIN
 
  copyfilter(conf.filters, &srv);
- pushthreadinit();
+ _3proxy_sem_unlock(conf.threadinit);
 
 
 #endif
@@ -937,19 +928,23 @@ int MODULEMAINFUNC (int argc, char** argv){
 		struct clientparam *toparam;
 		udplen = sockrecvfrom(NULL, srv.srvsock, (struct sockaddr *)&defparam.sincr, udpbuf, UDPBUFSIZE, 0);
 		if(udplen <= 0) continue;
-		_3proxy_mutex_lock(&srv.counter_mutex);
+		_3proxy_sem_lock(udpinit);
 		if(hashresolv(&udp_table, &defparam, &toparam, NULL)) {
 			socksendto(toparam, toparam->remsock, (struct sockaddr *)&toparam->sinsr, udpbuf, udplen, 0);
+			_3proxy_sem_unlock(udpinit);
 			toparam->statscli64 += udplen;
 			toparam->nwrites++;
-			_3proxy_mutex_unlock(&srv.counter_mutex);
 			continue;
 		}
-		_3proxy_mutex_unlock(&srv.counter_mutex);
 	}
 #endif
 	if(! (newparam = myalloc (sizeof(defparam)))){
 		if(!isudp) srv.so._closesocket(srv.so.state, new_sock);
+#ifndef NOUDPMAIN
+		else {
+			_3proxy_sem_unlock(udpinit);
+		}
+#endif
 		defparam.res = 21;
 		if(!srv.silent)dolog(&defparam, (unsigned char *)"Memory Allocation Failed");
 		usleep(SLEEPTIME);
@@ -962,36 +957,24 @@ int MODULEMAINFUNC (int argc, char** argv){
 #ifndef STDMAIN
 	if(makefilters(&srv, newparam) > CONTINUE){
 		freeparam(newparam);
+#ifndef NOUDPMAIN
+		if(isudp) {
+			_3proxy_sem_unlock(udpinit);
+		}
+#endif
 		continue;
 	}
 #endif
 #ifndef NOUDPMAIN
 	if(isudp) {
-		int authres;
-
-		if(parsehostname((char *)srv.target, newparam, ntohs(srv.targetport))) { freeparam(newparam); continue; }
-#ifndef NOIPV6
-		memcpy(&newparam->sinsl, *SAFAMILY(&newparam->req) == AF_INET6 ? (struct sockaddr *)&srv.extsa6 : (struct sockaddr *)&srv.extsa, SASIZE(&newparam->req));
-#else
-		memcpy(&newparam->sinsl, (struct sockaddr *)&srv.extsa, SASIZE(&newparam->req));
-#endif
-		*SAPORT(&newparam->sinsl) = 0;
-		newparam->remsock = srv.so._socket(srv.so.state, SASOCK(&newparam->sinsl), SOCK_DGRAM, IPPROTO_UDP);
-		if(newparam->remsock == INVALID_SOCKET) { freeparam(newparam); continue; }
-		if(srv.so._bind(srv.so.state, newparam->remsock, (struct sockaddr *)&newparam->sinsl, SASIZE(&newparam->sinsl))) { freeparam(newparam); continue; }
-#ifdef _WIN32
-		{ unsigned long ul2 = 1; ioctlsocket(newparam->remsock, FIONBIO, &ul2); }
-#else
-		fcntl(newparam->remsock, F_SETFL, O_NONBLOCK | fcntl(newparam->remsock, F_GETFL));
-#endif
-		memcpy(&newparam->sinsr, &newparam->req, sizeof(newparam->req));
-		newparam->operation = UDPASSOC;
-		authres = (*srv.authfunc)(newparam);
-		if(authres) { freeparam(newparam); continue; }
-		if(!srv.singlepacket)hashadd(&udp_table, newparam, &newparam, MAX_COUNTER_TIME);
-		socksendto(newparam, newparam->remsock, (struct sockaddr *)&newparam->sinsr, udpbuf, udplen, 0);
-		newparam->statscli64 += udplen;
-		newparam->nwrites++;
+		if(!(newparam->srvbuf = myalloc(UDPBUFSIZE))){
+		    freeparam(newparam);
+		    _3proxy_sem_unlock(udpinit);
+		    continue;
+		}
+		newparam->srvbufsize = UDPBUFSIZE;
+		newparam->srvinbuf = udplen;
+		memcpy(newparam->srvbuf, udpbuf, udplen);
 	}
 #endif
 	newparam->prev = newparam->next = NULL;
@@ -1010,38 +993,37 @@ int MODULEMAINFUNC (int argc, char** argv){
 #else
 	h = (HANDLE)CreateThread((LPSECURITY_ATTRIBUTES )NULL, (unsigned)(16384 + srv.stacksize), (void *)threadfunc, (void *) newparam, 0, &thread);
 #endif
-	srv.childcount++;
 	if (h) {
-		newparam->threadid = (uint64_t)thread;
 		CloseHandle(h);
 	}
 	else {
 		sprintf((char *)buf, "_beginthreadex(): %s", _strerror(NULL));
-		if(!srv.silent)dolog(&defparam, buf);
 		error = 1;
 	}
-	_3proxy_mutex_unlock(&srv.counter_mutex);
-	if(error) freeparam(newparam);
 #else
 
-	error = pthread_create(&thread, &pa, threadfunc, (void *)newparam);
-	if(error){
+	if ((error = pthread_create(&thread, &pa, threadfunc, (void *)newparam))){
 		sprintf((char *)buf, "pthread_create(): %s", strerror(error));
+	}
+#endif
+	if(error){
 		if(!srv.silent)dolog(&defparam, buf);
 		if(newparam->prev) newparam->prev->next = newparam->next;
 		else srv.child = newparam->next;
 		if(newparam->next) newparam->next->prev = newparam->prev;
-		_3proxy_mutex_unlock(&srv.counter_mutex);
 		newparam->srv = NULL;
+#ifndef NOUDPMAIN
+		if(isudp){
+			_3proxy_sem_unlock(udpinit);
+		}
+#endif
 		freeparam(newparam);
 	}
 	else {
 		srv.childcount++;
 		newparam->threadid = (uint64_t)thread;
-		_3proxy_mutex_unlock(&srv.counter_mutex);
 	}
-#endif
-
+	_3proxy_mutex_unlock(&srv.counter_mutex);
 	memset(&defparam.sincl, 0, sizeof(defparam.sincl));
 	memset(&defparam.sincr, 0, sizeof(defparam.sincr));
  }
@@ -1065,10 +1047,22 @@ int MODULEMAINFUNC (int argc, char** argv){
  if(cbc_string)myfree(cbc_string);
  if(cbl_string)myfree(cbl_string);
  if(fp) fclose(fp);
+#ifndef NOUDPMAIN
+ myfree(udpbuf);
+#endif
 
  return 0;
 }
 
+#ifndef NOUDPMAIN
+int udpinited = 0;
+#ifdef _WIN32
+HANDLE udpinit;
+#else
+_3proxy_mutex_t udpinit;
+#endif
+
+#endif
 
 void srvinit(struct srvparam * srv, struct clientparam *param){
 
@@ -1102,6 +1096,16 @@ void srvinit(struct srvparam * srv, struct clientparam *param){
  param->remsock = param->clisock = param->ctrlsock = param->ctrlsocksrv = INVALID_SOCKET;
  *SAFAMILY(&param->req) = *SAFAMILY(&param->sinsl) = *SAFAMILY(&param->sinsr) = *SAFAMILY(&param->sincr) = *SAFAMILY(&param->sincl) = AF_INET;
  _3proxy_mutex_init(&srv->counter_mutex);
+#ifndef NOUDPMAIN
+ if(!udpinited){
+#ifdef _WIN32
+    udpinit = CreateSemaphore(NULL, 1, 1, NULL);
+#else
+    _3proxy_mutex_init(&udpinit);
+#endif
+ }
+ udpinited = 1;
+#endif
  srv->intsa = conf.intsa;
  srv->extsa = conf.extsa;
 #ifndef NOIPV6

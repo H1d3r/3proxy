@@ -238,6 +238,15 @@ unsigned char* en64 (const unsigned char *in, unsigned char *out, int inlen);
 void tohex(unsigned char *in, unsigned char *out, int len);
 void fromhex(unsigned char *in, unsigned char *out, int len);
 
+#ifdef _WIN32
+extern HANDLE udpinit;
+#define _3proxy_sem_lock(x) WaitForSingleObject(x, INFINITE)
+#define _3proxy_sem_unlock(x) ReleaseSemaphore(x, 1, NULL)
+#else
+extern _3proxy_mutex_t udpinit;
+#define _3proxy_sem_lock(x) pthread_mutex_lock(&x)
+#define _3proxy_sem_unlock(x) pthread_mutex_unlock(&x)
+#endif
 
 
 int ftplogin(struct clientparam *param, char *buf, int *inbuf);

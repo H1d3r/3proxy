@@ -514,7 +514,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int 
   _3proxy_mutex_init(&rad_mutex);
 #endif
 #ifdef _WIN32
-  conf.threadinit = CreateSemaphore(NULL, 0, 1, NULL);
+  conf.threadinit = CreateSemaphore(NULL, 1, 1, NULL);
   if(!conf.threadinit){
     fprintf(stderr, "semaphore init failed\n");
     return 1;

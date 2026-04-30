@@ -153,6 +153,7 @@ int start_proxy_thread(struct child * chp){
   HANDLE h;
 #endif
 
+	_3proxy_sem_lock(conf.threadinit);
 #ifdef _WIN32
 #ifndef _WINCE
 	h = (HANDLE)_beginthreadex((LPSECURITY_ATTRIBUTES )NULL, 16384+conf.stacksize, (void *)startsrv, (void *) chp, (DWORD)0, &thread);
@@ -164,16 +165,11 @@ int start_proxy_thread(struct child * chp){
 	pthread_attr_init(&pa);
 	pthread_attr_setstacksize(&pa,PTHREAD_STACK_MIN + (32768+conf.stacksize));
 	pthread_attr_setdetachstate(&pa,PTHREAD_CREATE_DETACHED);
-	_3proxy_mutex_lock(&conf.threadinit);
 	pthread_create(&thread, &pa, startsrv, (void *)chp);
 	pthread_attr_destroy(&pa);
 #endif
-#ifdef _WIN32
-	WaitForSingleObject(conf.threadinit, INFINITE);
-#else
-	_3proxy_mutex_lock(&conf.threadinit);
-	_3proxy_mutex_unlock(&conf.threadinit);
-#endif
+	_3proxy_sem_lock(conf.threadinit);
+	_3proxy_sem_unlock(conf.threadinit);
 	if(haveerror)  {
 		fprintf(stderr, "Service not started on line: %d%s\n", linenum, haveerror == 2? ": insufficient memory":"");
 		return(40);
