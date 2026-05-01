@@ -236,11 +236,13 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 					((struct sockaddr_in *)relay)->sin_family = AF_INET;
 					memcpy(&((struct sockaddr_in *)relay)->sin_addr, buf, 4);
 					memcpy(&((struct sockaddr_in *)relay)->sin_port, buf + 4, 2);
+					if (param->udp_nhops == 0) param->sinsr = *relay;
 					param->udp_nhops++;
 				} else if (atyp == 4) {
 					((struct sockaddr_in6 *)relay)->sin6_family = AF_INET6;
 					memcpy(&((struct sockaddr_in6 *)relay)->sin6_addr, buf, 16);
 					memcpy(&((struct sockaddr_in6 *)relay)->sin6_port, buf + 16, 2);
+					if (param->udp_nhops == 0) param->sinsr = *relay;
 					param->udp_nhops++;
 				}
 			}
@@ -267,7 +269,7 @@ int handleredirect(struct clientparam * param, struct ace * acentry){
 	if(param->remsock != INVALID_SOCKET) {
 		return 0;
 	}
-	if(SAISNULL(&param->req) || !*SAPORT(&param->req)) {
+	if((SAISNULL(&param->req) || !*SAPORT(&param->req)) && param->operation != UDPASSOC) {
 		return 100;
 	}
 

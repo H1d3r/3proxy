@@ -143,7 +143,7 @@ void * sockschild(struct clientparam* param) {
 			buf[i] = (unsigned char)res;
 		}
 		buf[i] = 0;
-		if(command != 1 && param->srv->family != 6 && (!strcmp((char *)buf, "0.0.0.0") || !strcmp((char *)buf, "0"))) param->req = param->srv->extsa;
+		if(command == 2 && param->srv->family != 6 && (!strcmp((char *)buf, "0.0.0.0") || !strcmp((char *)buf, "0"))) param->req = param->srv->extsa;
 		else if(!getip46(param->srv->family, buf, (struct sockaddr *) &param->req)) RETURN(100);
 		param->sinsr = param->req;
 		break;

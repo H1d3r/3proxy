@@ -176,11 +176,20 @@ int udpsockmap(struct clientparam *param, int timeo)
 				(char *)param->srvbuf + hdrsize, UDPBUFSIZE - hdrsize, 0,
 				(struct sockaddr *)&from, &sasize);
 			if (len <= 0) return 468;
-			if (!SAISNULL(&param->sinsr) && *SAPORT(&param->sinsr)) {
-				if (SAADDRLEN(&from) != SAADDRLEN(&param->sinsr) ||
-				    memcmp(SAADDR(&from), SAADDR(&param->sinsr), SAADDRLEN(&from)) ||
-				    memcmp(SAPORT(&from), SAPORT(&param->sinsr), 2))
-					continue;
+			if (nhops >= 1) {
+				if (!SAISNULL(&param->sinsr) && *SAPORT(&param->sinsr)) {
+					if (SAADDRLEN(&from) != SAADDRLEN(&param->sinsr) ||
+					    memcmp(SAADDR(&from), SAADDR(&param->sinsr), SAADDRLEN(&from)) ||
+					    memcmp(SAPORT(&from), SAPORT(&param->sinsr), 2))
+						continue;
+				}
+			} else {
+				if (!SAISNULL(&param->req) && *SAPORT(&param->req)) {
+					if (SAADDRLEN(&from) != SAADDRLEN(&param->req) ||
+					    memcmp(SAADDR(&from), SAADDR(&param->req), SAADDRLEN(&from)) ||
+					    memcmp(SAPORT(&from), SAPORT(&param->req), 2))
+						continue;
+				}
 			}
 			param->statssrv64 += len;
 			param->nreads++;
