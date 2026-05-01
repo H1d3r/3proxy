@@ -10,6 +10,14 @@
 <a href="#NAME">NAME</a><br>
 <a href="#DESCRIPTION">DESCRIPTION</a><br>
 <a href="#PLUGINS">PLUGINS</a><br>
+<a href="#SSL/TLS SUPPORT">SSL/TLS SUPPORT</a><br>
+<a href="#MITM Commands">MITM Commands</a><br>
+<a href="#Server TLS Commands">Server TLS Commands</a><br>
+<a href="#Client TLS Commands">Client TLS Commands</a><br>
+<a href="#SSL Parameters">SSL Parameters</a><br>
+<a href="#PCRE FILTERING">PCRE FILTERING</a><br>
+<a href="#PCRE Commands">PCRE Commands</a><br>
+<a href="#PCRE Parameters">PCRE Parameters</a><br>
 <a href="#BUGS">BUGS</a><br>
 <a href="#SEE ALSO">SEE ALSO</a><br>
 <a href="#TRIVIA">TRIVIA</a><br>
@@ -1016,6 +1024,220 @@ If Content-length (or another data length) is greater than
 the given value, no data filtering will be performed through
 filtering plugins to avoid data corruption and/or
 Content-Length changing. Default is 1MB (1048576).</p>
+
+<h2>SSL/TLS SUPPORT
+<a name="SSL/TLS SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:6%; margin-top: 1em">SSL/TLS support
+is built into 3proxy (since 0.9.7) when compiled with
+OpenSSL (WITH_SSL). Previously available as SSLPlugin, the
+functionality is now integrated into the main binary. The
+plugin line is no longer required.</p>
+
+<p style="margin-left:6%; margin-top: 1em">SSL/TLS can be
+used for: - transparent MITM (Man-in-the-Middle) for TLS
+traffic inspection - https:// proxy (TLS-encrypted
+connection between client and proxy) - TLS client
+connections to upstream servers with certificate
+authentication - mTLS (mutual TLS) requiring client
+certificates</p>
+
+<h3>MITM Commands
+<a name="MITM Commands"></a>
+</h3>
+
+
+<p style="margin-left:6%; margin-top: 1em"><b>ssl_mitm</b>
+- spoof certificates for services started below. Usage
+without ssl_client_verify is insecure. <b><br>
+ssl_nomitm</b> - do not spoof certificates for services
+started below</p>
+
+<h3>Server TLS Commands
+<a name="Server TLS Commands"></a>
+</h3>
+
+
+<p style="margin-left:6%; margin-top: 1em"><b>ssl_serv</b>
+(or ssl_server) - require TLS connection from clients for
+services below <b><br>
+ssl_noserv</b> (or ssl_noserver) - do not require TLS
+connection from clients for services below</p>
+
+<h3>Client TLS Commands
+<a name="Client TLS Commands"></a>
+</h3>
+
+
+<p style="margin-left:6%; margin-top: 1em"><b>ssl_cli</b>
+(or ssl_client) - establish TLS connection to upstream
+server for services below <b><br>
+ssl_nocli</b> (or ssl_noclient) - do not establish TLS
+connection to upstream server for services below</p>
+
+<h3>SSL Parameters
+<a name="SSL Parameters"></a>
+</h3>
+
+
+
+<p style="margin-left:6%; margin-top: 1em"><b>ssl_server_cert</b>
+<i>/path/to/cert</i> - Server certificate (should not be
+self-signed, must contain SAN) for ssl_serv <b><br>
+ssl_server_key</b> <i>/path/to/key</i> - Server certificate
+key for ssl_server_cert or generated MITM certificate
+<b><br>
+ssl_client_cert</b> <i>/path/to/cert</i> - Client
+certificate for authentication on upstream server (used with
+ssl_cli) <b><br>
+ssl_client_key</b> <i>/path/to/key</i> - Client certificate
+key for ssl_client_cert <b><br>
+ssl_client_ciphersuites</b> <i>ciphersuites_list</i> - TLS
+client ciphers for TLS 1.3 <b><br>
+ssl_server_ciphersuites</b> <i>ciphersuites_list</i> - TLS
+server ciphers for TLS 1.3 <b><br>
+ssl_client_cipher_list</b> <i>ciphers_list</i> - TLS client
+ciphers for TLS 1.2 and below <b><br>
+ssl_server_cipher_list</b> <i>ciphers_list</i> - TLS server
+ciphers for TLS 1.2 and below <b><br>
+ssl_client_min_proto_version</b> <i>tls_version</i> - TLS
+client minimum TLS version (e.g., TLSv1.2) <b><br>
+ssl_server_min_proto_version</b> <i>tls_version</i> - TLS
+server minimum TLS version <b><br>
+ssl_client_max_proto_version</b> <i>tls_version</i> - TLS
+client maximum TLS version <b><br>
+ssl_server_max_proto_version</b> <i>tls_version</i> - TLS
+server maximum TLS version <b><br>
+ssl_client_verify</b> - verify the certificate for the
+upstream server (used with ssl_mitm or ssl_cli) <b><br>
+ssl_client_no_verify</b> - do not verify the certificate for
+the upstream server (default) <b><br>
+ssl_server_verify</b> - require client certificate
+authentication (mTLS) for ssl_serv <b><br>
+ssl_server_no_verify</b> - do not require client certificate
+(default) <b><br>
+ssl_server_ca_file</b> <i>/path/to/cafile</i> - CA
+certificate file for MITM <b><br>
+ssl_server_ca_key</b> <i>/path/to/cakey</i> - key for
+ssl_server_ca_file MITM CA <b><br>
+ssl_server_ca_dir</b> <i>/path/to/cadir</i> - CA directory
+for ssl_server_verify <b><br>
+ssl_server_ca_store</b> <i>/path/to/castore</i> - CA store
+for ssl_server_verify (OpenSSL 3.0+) <b><br>
+ssl_client_ca_file</b> <i>/path/to/cafile</i> - CA file for
+ssl_client_verify <b><br>
+ssl_client_ca_dir</b> <i>/path/to/cadir</i> - CA directory
+for ssl_client_verify <b><br>
+ssl_client_ca_store</b> <i>/path/to/castore</i> - CA store
+for ssl_client_verify (OpenSSL 3.0+) <b><br>
+ssl_client_sni</b> <i>hostname</i> - SNI hostname to send to
+upstream server <b><br>
+ssl_client_alpn</b> <i>protocol1 protocol2 ...</i> - ALPN
+protocols to negotiate with upstream server <b><br>
+ssl_client_mode</b> <i>mode</i> - when to establish TLS
+connection: 0 - on connect (default), 1 - after
+authentication, 2 - before data, 3 - only for secure parent
+types (ending with &rsquo;s&rsquo;) <b><br>
+ssl_certcache</b> <i>/path/to/cache/</i> - location for the
+generated MITM certificates cache</p>
+
+<h2>PCRE FILTERING
+<a name="PCRE FILTERING"></a>
+</h2>
+
+
+<p style="margin-left:6%; margin-top: 1em">PCRE (Perl
+Compatible Regular Expressions) filtering is built into
+3proxy (since 0.9.7) when compiled with PCRE2 support
+(WITH_PCRE). Previously available as PCREPlugin, the
+functionality is now integrated into the main binary. The
+plugin line is no longer required.</p>
+
+<p style="margin-left:6%; margin-top: 1em">PCRE filtering
+allows creating matching and replacement rules with regular
+expressions for client requests, headers, and data.</p>
+
+<h3>PCRE Commands
+<a name="PCRE Commands"></a>
+</h3>
+
+
+<p style="margin-left:6%; margin-top: 1em"><b>pcre</b>
+<i>TYPE FILTER_ACTION REGEXP [ACE]</i> <br>
+Apply a rule for matching regular expression. <b><br>
+pcre_rewrite</b> <i>TYPE FILTER_ACTION REGEXP
+REWRITE_EXPRESSION [ACE]</i> <br>
+Match and replace with rewrite expression. <b><br>
+pcre_extend</b> <i>FILTER_ACTION [ACE]</i> <br>
+Extend the ACL of the last pcre or pcre_rewrite command by
+adding an additional ACE. <b><br>
+pcre_options</b> <i>OPTION1 [OPTION2 ...]</i> <br>
+Set matching options. Both PCRE2 native options and PCRE
+compatibility options are supported. PCRE options are mapped
+to their PCRE2 equivalents for backward compatibility. <br>
+PCRE2 options: PCRE2_CASELESS, PCRE2_MULTILINE,
+PCRE2_DOTALL, PCRE2_EXTENDED, PCRE2_DOLLAR_ENDONLY,
+PCRE2_UNGREEDY, PCRE2_UTF, PCRE2_UCP, PCRE2_NO_AUTO_CAPTURE,
+PCRE2_FIRSTLINE, PCRE2_DUPNAMES, PCRE2_MATCH_UNSET_BACKREF,
+PCRE2_ALT_BSUX, PCRE2_ALT_CIRCUMFLEX, PCRE2_ALT_VERBNAMES,
+PCRE2_USE_OFFSET_LIMIT, PCRE2_EXTENDED_MORE, PCRE2_LITERAL,
+PCRE2_MATCH_INVALID_UTF. <br>
+PCRE compatibility options: PCRE_CASELESS, PCRE_MULTILINE,
+PCRE_DOTALL, PCRE_EXTENDED, PCRE_ANCHORED,
+PCRE_DOLLAR_ENDONLY, PCRE_EXTRA, PCRE_NOTBOL, PCRE_NOTEOL,
+PCRE_UNGREEDY, PCRE_NOTEMPTY, PCRE_UTF8,
+PCRE_NO_AUTO_CAPTURE, PCRE_NO_UTF8_CHECK, PCRE_AUTO_CALLOUT,
+PCRE_PARTIAL, PCRE_DFA_SHORTEST, PCRE_DFA_RESTART,
+PCRE_FIRSTLINE, PCRE_DUPNAMES, PCRE_NEWLINE_CR,
+PCRE_NEWLINE_LF, PCRE_NEWLINE_CRLF, PCRE_NEWLINE_ANY,
+PCRE_NEWLINE_ANYCRLF, PCRE_BSR_ANYCRLF,
+PCRE_BSR_UNICODE.</p>
+
+<h3>PCRE Parameters
+<a name="PCRE Parameters"></a>
+</h3>
+
+
+<p style="margin-left:6%; margin-top: 1em">TYPE - type of
+filtered data (comma-delimited list): <br>
+request - content of the client&rsquo;s request (e.g., HTTP
+GET request string) <br>
+cliheader - content of the client request headers <br>
+srvheader - content of the server&rsquo;s reply headers <br>
+clidata - data received from the client (e.g., HTTP POST
+data) <br>
+srvdata - data received from the server (e.g., HTML
+page)</p>
+
+<p style="margin-left:6%; margin-top: 1em">FILTER_ACTION -
+action on match: <br>
+allow - allow this request without checking the rest of the
+rules <br>
+deny - deny this request without checking the rest of the
+rules <br>
+dunno - continue with the rest of the rules (useful with
+pcre_rewrite)</p>
+
+<p style="margin-left:6%; margin-top: 1em">REGEXP - PCRE
+(Perl) regular expression. Use * if no regexp matching is
+required.</p>
+
+
+<p style="margin-left:6%; margin-top: 1em">REWRITE_EXPRESSION
+- substitution string. May contain Perl-style substrings $1,
+$2, etc. $0 means the whole matched string. \r and \n may be
+used to insert new lines; the string may be empty
+(&quot;&quot;).</p>
+
+<p style="margin-left:6%; margin-top: 1em">ACE - access
+control entry (user names, source IPs, destination IPs,
+ports, etc.), identical to allow/deny/bandlimin commands.
+The regular expression is only matched if the ACL matches
+the connection data. Warning: Regular expressions
+don&rsquo;t require authentication and cannot replace
+authentication and/or allow/deny ACLs.</p>
 
 <h2>BUGS
 <a name="BUGS"></a>

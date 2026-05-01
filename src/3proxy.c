@@ -7,6 +7,12 @@
 */
 
 #include "proxy.h"
+#ifdef WITH_SSL
+void ssl_install(void);
+#endif
+#ifdef WITH_PCRE
+void pcre_install(void);
+#endif
 #ifndef _WIN32
 #include <sys/resource.h>
 #ifndef NOPLUGINS
@@ -521,6 +527,13 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int 
   }
 #else
   _3proxy_mutex_init(&conf.threadinit);
+#endif
+
+#ifdef WITH_SSL
+  ssl_install();
+#endif
+#ifdef WITH_PCRE
+  pcre_install();
 #endif
 
   freeconf(&conf);

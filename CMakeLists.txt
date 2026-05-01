@@ -105,7 +105,6 @@ if(WIN32)
         # MSVC-specific settings
         add_compile_definitions(
             MSVC
-            WITH_SSL
         )
         # Use static runtime library
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -123,7 +122,6 @@ if(WIN32)
         # clang-cl (Clang with MSVC frontend)
         add_compile_definitions(
             MSVC
-            WITH_SSL
         )
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
         add_compile_options(
@@ -254,14 +252,14 @@ endif()
 # OpenSSL
 set(OPENSSL_FOUND FALSE)
 if(3PROXY_USE_OPENSSL)
-    find_package(OpenSSL QUIET)
+    find_package(OpenSSL REQUIRED)
     if(OpenSSL_FOUND)
         set(OPENSSL_FOUND TRUE)
         add_compile_definitions(WITH_SSL)
         message(STATUS "OpenSSL found: ${OPENSSL_VERSION}")
-    else()
-        message(STATUS "OpenSSL not found, SSLPlugin will not be built")
     endif()
+else()
+    message(STATUS "OpenSSL disabled by user request")
 endif()
 
 # PCRE2
@@ -269,9 +267,10 @@ set(PCRE2_FOUND FALSE)
 if(3PROXY_USE_PCRE2)
     find_package(PCRE2 QUIET)
     if(PCRE2_FOUND)
+        add_compile_definitions(WITH_PCRE)
         message(STATUS "PCRE2 found: ${PCRE2_VERSION}")
     else()
-        message(STATUS "PCRE2 not found, PCREPlugin will not be built")
+        message(STATUS "PCRE2 not found, PCRE support will not be built")
     endif()
 endif()
 
@@ -302,6 +301,11 @@ if(NOT ODBC_FOUND)
     add_compile_definitions(NOODBC)
 endif()
 
+# Set NORADIUS if OpenSSL is not available (RADIUS requires MD5 from OpenSSL)
+if(NOT OPENSSL_FOUND)
+    add_compile_definitions(NORADIUS)
+endif()
+
 # Source files for 3proxy core
 set(3PROXY_CORE_SOURCES
     src/3proxy.c
@@ -320,10 +324,8 @@ set(3PROXY_CORE_SOURCES
     src/stringtable.c
 )
 
-# MD4/MD5/BLAKE2 sources for 3proxy_crypt
+# BLAKE2 source for 3proxy_crypt
 set(MD_SOURCES
-    src/libs/md4.c
-    src/libs/md5.c
     src/libs/blake2b-ref.c
 )
 
@@ -372,6 +374,10 @@ target_include_directories(srvudppm_obj PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+# UDP socket relay (used by 3proxy, socks, udppm)
+add_library(udpsockmap_obj OBJECT src/udpsockmap.c)
+target_include_directories(udpsockmap_obj PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 # mainfunc object (proxymain.c compiled with MODULEMAINFUNC=mainfunc for 3proxy)
 add_library(mainfunc OBJECT src/proxymain.c)
 target_include_directories(mainfunc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -384,6 +390,9 @@ target_include_directories(ftp_obj PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # 3proxy_crypt object for 3proxy (without WITHMAIN)
 add_library(3proxy_crypt_obj OBJECT src/3proxy_crypt.c)
 target_include_directories(3proxy_crypt_obj PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+if(OpenSSL_FOUND)
+    target_include_directories(3proxy_crypt_obj PRIVATE ${OPENSSL_INCLUDE_DIR})
+endif()
 
 # ============================================================================
 # Main 3proxy executable
@@ -397,15 +406,30 @@ add_executable(3proxy
     $<TARGET_OBJECTS:srvudppm_obj>
     $<TARGET_OBJECTS:mainfunc>
     $<TARGET_OBJECTS:common_obj>
+    $<TARGET_OBJECTS:udpsockmap_obj>
     $<TARGET_OBJECTS:base64_obj>
     $<TARGET_OBJECTS:ftp_obj>
     $<TARGET_OBJECTS:3proxy_crypt_obj>
 )
 
+if(OpenSSL_FOUND)
+    target_sources(3proxy PRIVATE src/ssllib.c src/ssl.c)
+endif()
+
+if(PCRE2_FOUND)
+    target_sources(3proxy PRIVATE src/pcre.c)
+endif()
+
 target_include_directories(3proxy PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/libs
 )
+if(OpenSSL_FOUND)
+    target_include_directories(3proxy PRIVATE ${OPENSSL_INCLUDE_DIR})
+endif()
+if(PCRE2_FOUND)
+    target_include_directories(3proxy PRIVATE ${PCRE2_INCLUDE_DIRS})
+endif()
 
 target_link_libraries(3proxy PRIVATE Threads::Threads)
 
@@ -417,19 +441,52 @@ if(ODBC_FOUND)
     endif()
 endif()
 
+if(OpenSSL_FOUND)
+    target_link_libraries(3proxy PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+endif()
+
+# PCRE2 linking (try static first on Linux/FreeBSD, fallback to dynamic)
+if(PCRE2_FOUND)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR
+       CMAKE_SYSTEM_NAME MATCHES "FreeBSD|OpenBSD|NetBSD" OR
+       CMAKE_SYSTEM_NAME STREQUAL "Unix")
+        # Try static linking for Linux/BSD
+        find_library(PCRE2_STATIC_LIB
+            NAMES pcre2-8-static libpcre2-8.a pcre2-8.a
+            PATHS ${PC_PCRE2_LIBRARY_DIRS}
+                  /usr/lib/x86_64-linux-gnu
+                  /usr/lib
+                  /usr/local/lib
+                  /lib
+        )
+        if(PCRE2_STATIC_LIB AND PCRE2_STATIC_LIB MATCHES "\\.a$")
+            target_link_libraries(3proxy PRIVATE
+                -Wl,-Bstatic
+                ${PCRE2_STATIC_LIB}
+                -Wl,-Bdynamic
+            )
+            message(STATUS "Using static PCRE2: ${PCRE2_STATIC_LIB}")
+        elseif(TARGET PCRE2::PCRE2)
+            target_link_libraries(3proxy PRIVATE PCRE2::PCRE2)
+            message(STATUS "Using dynamic PCRE2 (PCRE2::PCRE2)")
+        else()
+            target_link_libraries(3proxy PRIVATE ${PCRE2_LIBRARIES})
+            message(STATUS "Using dynamic PCRE2: ${PCRE2_LIBRARIES}")
+        endif()
+    elseif(TARGET PCRE2::PCRE2)
+        target_link_libraries(3proxy PRIVATE PCRE2::PCRE2)
+    else()
+        target_link_libraries(3proxy PRIVATE ${PCRE2_LIBRARIES})
+    endif()
+endif()
+
 if(WIN32)
     target_link_libraries(3proxy PRIVATE ${WINDOWS_LIBS})
-    if(OpenSSL_FOUND)
-        target_link_libraries(3proxy PRIVATE OpenSSL::SSL OpenSSL::Crypto)
-    endif()
     if(COMPILER_IS_MSVC AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3proxy.rc)
         target_sources(3proxy PRIVATE 3proxy.rc)
     endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(3proxy PRIVATE dl)
-    if(OpenSSL_FOUND)
-        target_link_libraries(3proxy PRIVATE OpenSSL::SSL OpenSSL::Crypto)
-    endif()
 endif()
 
 # Build 3proxy_crypt utility
@@ -443,7 +500,13 @@ target_include_directories(3proxy_crypt PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/libs
 )
+if(OpenSSL_FOUND)
+    target_include_directories(3proxy_crypt PRIVATE ${OPENSSL_INCLUDE_DIR})
+endif()
 target_link_libraries(3proxy_crypt PRIVATE Threads::Threads)
+if(OpenSSL_FOUND)
+    target_link_libraries(3proxy_crypt PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+endif()
 if("${3PROXY_BINARY_PREFIX}" STREQUAL "")
     set_target_properties(3proxy_crypt PROPERTIES OUTPUT_NAME "mycrypt")
 else()
@@ -509,6 +572,10 @@ foreach(PROXY_NAME proxy socks pop3p smtpp ftppr tcppm udppm tlspr)
     if(PROXY_NAME STREQUAL "udppm")
         target_sources(${PROXY_NAME} PRIVATE src/hash.c)
     endif()
+
+    if(PROXY_NAME STREQUAL "socks" OR PROXY_NAME STREQUAL "udppm")
+        target_sources(${PROXY_NAME} PRIVATE src/udpsockmap.c)
+    endif()
 endforeach()
 
 # Plugin output directory
@@ -527,26 +594,12 @@ foreach(PLUGIN ${DEFAULT_PLUGINS})
     add_subdirectory(src/plugins/${PLUGIN})
 endforeach()
 
-if(OPENSSL_FOUND)
-    add_subdirectory(src/plugins/SSLPlugin)
-endif()
-
-if(PCRE2_FOUND)
-    add_subdirectory(src/plugins/PCREPlugin)
-endif()
-
 if(PAM_FOUND)
     add_subdirectory(src/plugins/PamAuth)
 endif()
 
 # Build full list of plugins to be built
 set(ALL_PLUGINS ${DEFAULT_PLUGINS})
-if(OPENSSL_FOUND)
-    list(APPEND ALL_PLUGINS SSLPlugin)
-endif()
-if(PCRE2_FOUND)
-    list(APPEND ALL_PLUGINS PCREPlugin)
-endif()
 if(PAM_FOUND)
     list(APPEND ALL_PLUGINS PamAuth)
 endif()

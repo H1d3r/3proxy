@@ -7,6 +7,12 @@
 */
 
 #include "proxy.h"
+#ifdef WITH_SSL
+void ssl_install(void);
+#endif
+#ifdef WITH_PCRE
+void pcre_install(void);
+#endif
 #ifndef _WIN32
 #include <sys/resource.h>
 #include <pwd.h>
@@ -526,9 +532,11 @@ static int h_users(int argc, unsigned char **argv){
         if (arg[1] && arg[2] && arg[3] == ':') {
             pw[1] = (char *)(arg + 4);
             if (arg[1] == 'N' && arg[2] == 'T') {
+#ifdef WITH_SSL
                 if (!pwnt_table.ihashtable && inithashtable(&pwnt_table, 16, 32, 1048576))
                     return 3;
                 hashadd(&pwnt_table, pw, &dummy, MAX_COUNTER_TIME);
+#endif
                 continue;
             }
             if (arg[1] == 'C' && arg[2] == 'R') {
@@ -1447,6 +1455,16 @@ static int h_authcache(int argc, unsigned char **argv){
 }
 
 static int h_plugin(int argc, unsigned char **argv){
+#ifdef WITH_SSL
+	if(argc >= 3 && !strcmp((char *)argv[2], "ssl_plugin")){
+		return 0;
+	}
+#endif
+#ifdef WITH_PCRE
+	if(argc >= 3 && !strcmp((char *)argv[2], "pcre_plugin")){
+		return 0;
+	}
+#endif
 #ifdef NOPLUGINS
 	return 999;
 #else
@@ -1875,7 +1893,9 @@ void freeconf(struct extparam *confp){
  _3proxy_mutex_unlock(&connlim_mutex);
 
  destroyhashtable(&pw_table);
+#ifdef WITH_SSL
  destroyhashtable(&pwnt_table);
+#endif
  destroyhashtable(&pwcr_table);
 
  confp->logfunc = lognone;
@@ -1946,6 +1966,12 @@ int reload (void){
 	int error = -2;
 
 	_3proxy_mutex_lock(&config_mutex);
+#ifdef WITH_SSL
+	ssl_install();
+#endif
+#ifdef WITH_PCRE
+	pcre_install();
+#endif
 	conf.paused++;
 	freeconf(&conf);
 	conf.paused++;

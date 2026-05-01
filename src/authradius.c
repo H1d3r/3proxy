@@ -8,7 +8,7 @@
 
 #ifndef NORADIUS
 #include "proxy.h"
-#include "libs/md5.h"
+#include <openssl/evp.h>
 
 #define AUTH_VECTOR_LEN         16
 #define MAX_STRING_LEN          254
@@ -183,14 +183,19 @@ char *strNcpy(char *dest, const char *src, int n)
 	return dest;
 }
 
+extern EVP_MD *md4;
+extern EVP_MD *md5;
+
+
 void md5_calc(unsigned char *output, unsigned char *input,
 		     unsigned int inlen)
 {
-	MD5_CTX	context;
-
-	MD5Init(&context);
-	MD5Update(&context, input, inlen);
-	MD5Final(output, &context);
+	EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+	unsigned int len = 0;
+	EVP_DigestInit_ex(ctx, md5, NULL);
+	EVP_DigestUpdate(ctx, input, inlen);
+	EVP_DigestFinal_ex(ctx, output, &len);
+	EVP_MD_CTX_free(ctx);
 }
 
 

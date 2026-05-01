@@ -1,10 +1,13 @@
+<h3>3proxy PCRE (Perl Compatible Regular Expressions) Filtering</h3>
 
-<h3>3proxy Perl Compatible Regular Expressions (PCRE) Plugin</h3>
+<p><b>Note:</b> Since version 0.9.7, PCRE filtering is built into 3proxy and does not require
+a separate plugin. All pcre_* commands are available directly when 3proxy is compiled with
+PCRE2 support (WITH_PCRE). The plugin line is no longer needed.</p>
 
-This filtering plugin can be used to create matching and replacement
+<p>This filtering functionality can be used to create matching and replacement
 rules with regular expressions for client requests, client and
 server headers, and client and server data. It adds 3 additional
-configuration commands:
+configuration commands:</p>
 
 <pre>
 pcre TYPE FILTER_ACTION REGEXP [ACE]
@@ -78,16 +81,10 @@ authentication and/or allow/deny ACLs.
 
 <h4>Example:</h4>
 <pre>
-plugin PCREPlugin.dll pcre_plugin
 pcre request deny "porn|sex" user1,user2,user3 192.168.0.0/16
 pcre srvheader deny "Content-type: application"
 pcre_rewrite clidata,srvdata dunno "porn|sex|pussy" "***" baduser
 pcre_extend deny * 192.168.0.1/16
 </pre>
 
-<h4>Download:</h4>
-<ul>
- <li>Plugin is included in the 3proxy 0.6 binary and source distribution
- <li>Example configuration (by Dennis Garber): <A HREF="NoPornLitest.cfg.txt">NoPornLitest.cfg</A>
-</li></ul>
-
+&copy; Vladimir Dubrovin, License: BSD style

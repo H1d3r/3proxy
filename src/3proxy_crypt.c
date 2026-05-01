@@ -5,11 +5,13 @@
    please read License Agreement
 
 */
+#include "blake2_compat.h"
+#ifdef WITH_SSL
+#include <openssl/evp.h>
 #ifndef WITHMAIN
-#include "libs/md5.h"
+/* MD5 needed for $1$ crypt */
 #endif
-#include "libs/md4.h"
-#include "libs/blake2.h"
+#endif
 #include <string.h>
 
 #define MD5_SIZE 16
@@ -24,6 +26,12 @@ void tohex(unsigned char *in, unsigned char *out, int len);
 static unsigned char itoa64[] =
         "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
+
+#if defined(WITH_SSL)
+EVP_MD *md4 = NULL;
+EVP_MD *md5 = NULL;
+#endif
+
 void
 _crypt_to64(unsigned char *s, unsigned long v, int n)
 {
@@ -34,11 +42,13 @@ _crypt_to64(unsigned char *s, unsigned long v, int n)
 }
 
 
+#ifdef WITH_SSL
 unsigned char * ntpwdhash (unsigned char *szHash, const unsigned char *szPassword, int ctohex)
 {
 	unsigned char szUnicodePass[513];
 	unsigned int nPasswordLen;
-	MD4_CTX ctx;
+	EVP_MD_CTX *ctx;
+	unsigned int len=sizeof(szUnicodePass);
 	unsigned int i;
 
 	/*
@@ -53,15 +63,20 @@ unsigned char * ntpwdhash (unsigned char *szHash, const unsigned char *szPasswor
 	}
 
 	/* Encrypt Unicode password to a 16-byte MD4 hash */
-	MD4Init(&ctx);
-	MD4Update(&ctx, szUnicodePass, (nPasswordLen<<1));
-	MD4Final(szUnicodePass, &ctx);
+	ctx = EVP_MD_CTX_new();
+	if(!EVP_DigestInit_ex(ctx, md4, NULL)){
+	    fprintf(stderr, "Failed to init MD4 digest\n");
+	}
+	EVP_DigestUpdate(ctx, szUnicodePass, (nPasswordLen<<1));
+	EVP_DigestFinal_ex(ctx, szUnicodePass, &len);
+	EVP_MD_CTX_free(ctx);
 	if (ctohex){
 		tohex(szUnicodePass, szHash, 16);
 	}
 	else memcpy(szHash, szUnicodePass, 16);
 	return szHash;
 }
+#endif
 
 
 unsigned char * mycrypt(const unsigned char *pw, const unsigned char *salt, unsigned char *passwd){
@@ -74,34 +89,38 @@ unsigned char * mycrypt(const unsigned char *pw, const unsigned char *salt, unsi
  int sl;
  unsigned long l;
 
-#ifndef WITHMAIN
+#if defined(WITH_SSL)
  if(salt[0] == '$' && salt[1] == '1' && salt[2] == '$' && (ep = (unsigned char *)strchr((char *)salt+3, '$'))) {
-	MD5_CTX	ctx,ctx1;
+	EVP_MD_CTX	*ctx, *ctx1;
+	unsigned int len;
 	int pl, i;
 
 	sp = salt +3;
 	sl = (int)(ep - sp);
 	magic = (unsigned char *)"$1$";
 
-	MD5Init(&ctx);
+	ctx = EVP_MD_CTX_new();
+	EVP_DigestInit_ex(ctx, md5, NULL);
 
 	/* The password first, since that is what is most unknown */
-	MD5Update(&ctx,pw,strlen((char *)pw));
+	EVP_DigestUpdate(ctx,pw,strlen((char *)pw));
 
 	/* Then our magic string */
-	MD5Update(&ctx,magic,strlen((char *)magic));
+	EVP_DigestUpdate(ctx,magic,strlen((char *)magic));
 
 	/* Then the raw salt */
-	MD5Update(&ctx,sp,sl);
+	EVP_DigestUpdate(ctx,sp,sl);
 
 	/* Then just as many unsigned characters of the MD5(pw,salt,pw) */
-	MD5Init(&ctx1);
-	MD5Update(&ctx1,pw,strlen((char *)pw));
-	MD5Update(&ctx1,sp,sl);
-	MD5Update(&ctx1,pw,strlen((char *)pw));
-	MD5Final(final,&ctx1);
+	ctx1 = EVP_MD_CTX_new();
+	EVP_DigestInit_ex(ctx1, EVP_md5(), NULL);
+	EVP_DigestUpdate(ctx1,pw,strlen((char *)pw));
+	EVP_DigestUpdate(ctx1,sp,sl);
+	EVP_DigestUpdate(ctx1,pw,strlen((char *)pw));
+	EVP_DigestFinal_ex(ctx1,final,&len);
+	EVP_MD_CTX_free(ctx1);
 	for(pl = (int)strlen((char *)pw); pl > 0; pl -= MD5_SIZE)
-		MD5Update(&ctx,final,pl>MD5_SIZE ? MD5_SIZE : pl);
+		EVP_DigestUpdate(ctx,final,pl>MD5_SIZE ? MD5_SIZE : pl);
 
 	/* Don't leave anything around in vm they could use. */
 	memset(final,0,sizeof final);
@@ -109,12 +128,13 @@ unsigned char * mycrypt(const unsigned char *pw, const unsigned char *salt, unsi
 	/* Then something really weird... */
 	for (i = (int)strlen((char *)pw); i ; i >>= 1)
 		if(i&1)
-		    MD5Update(&ctx, final, 1);
+		    EVP_DigestUpdate(ctx, final, 1);
 		else
-		    MD5Update(&ctx, pw, 1);
+		    EVP_DigestUpdate(ctx, pw, 1);
 
 
-	MD5Final(final,&ctx);
+	EVP_DigestFinal_ex(ctx,final,&len);
+	EVP_MD_CTX_free(ctx);
 
 	/*
 	 * and now, just to make sure things don't run too fast
@@ -122,23 +142,25 @@ unsigned char * mycrypt(const unsigned char *pw, const unsigned char *salt, unsi
 	 * need 30 seconds to build a 1000 entry dictionary...
 	 */
 	for(i=0;i<1000;i++) {
-		MD5Init(&ctx1);
+		ctx1 = EVP_MD_CTX_new();
+		EVP_DigestInit_ex(ctx1, md5, NULL);
 		if(i & 1)
-			MD5Update(&ctx1,pw,strlen((char *)pw));
+			EVP_DigestUpdate(ctx1,pw,strlen((char *)pw));
 		else
-			MD5Update(&ctx1,final,MD5_SIZE);
+			EVP_DigestUpdate(ctx1,final,MD5_SIZE);
 
 		if(i % 3)
-			MD5Update(&ctx1,sp,sl);
+			EVP_DigestUpdate(ctx1,sp,sl);
 
 		if(i % 7)
-			MD5Update(&ctx1,pw,strlen((char *)pw));
+			EVP_DigestUpdate(ctx1,pw,strlen((char *)pw));
 
 		if(i & 1)
-			MD5Update(&ctx1,final,MD5_SIZE);
+			EVP_DigestUpdate(ctx1,final,MD5_SIZE);
 		else
-			MD5Update(&ctx1,pw,strlen((char *)pw));
-		MD5Final(final,&ctx1);
+			EVP_DigestUpdate(ctx1,pw,strlen((char *)pw));
+		EVP_DigestFinal_ex(ctx1,final,&len);
+		EVP_MD_CTX_free(ctx1);
 	}
 
 
@@ -151,7 +173,13 @@ unsigned char * mycrypt(const unsigned char *pw, const unsigned char *salt, unsi
     sp = salt +3;
     sl = (int)(ep - sp);
     magic = (unsigned char *)"$3$";
-    blake2b(final, MD5_SIZE, pw, strlen((char *)pw), sp, sl);
+    {
+        blake2b_state S;
+        blake2b_init(&S, MD5_SIZE);
+        blake2b_update(&S, pw, strlen((char *)pw) + 1);
+        blake2b_update(&S, sp, sl);
+        blake2b_final(&S, final, MD5_SIZE);
+    }
  }
  else {
 	*passwd = 0;
@@ -180,25 +208,55 @@ unsigned char * mycrypt(const unsigned char *pw, const unsigned char *salt, unsi
 }
 
 #ifdef WITHMAIN
-
+#ifdef WITH_SSL
+OSSL_LIB_CTX *library_ctx = NULL;
+#include <openssl/provider.h>
+#endif
 #include <stdio.h>
 int main(int argc, char* argv[]){
 	unsigned char buf[1024];
 	unsigned i;
 	if(argc < 2 || argc > 3) {
 		fprintf(stderr, "usage: \n"
+#ifdef WITH_SSL
 			"\t%s <password>\n"
+#endif
 			"\t%s <salt> <password>\n"
+#ifdef WITH_SSL
 			"Performs NT crypt if no salt specified, BLAKE2 crypt with salt\n"
+#else
+			"Performs BLAKE2 crypt with salt\n"
+#endif
 			"This software uses:\n"
-			"  RSA Data Security, Inc. MD4 Message-Digest Algorithm\n"
-			"  RSA Data Security, Inc. MD5 Message-Digest Algorithm\n",
+#ifdef WITH_SSL
+			"  OpenSSL EVP (MD4, MD5, BLAKE2b)\n"
+#else
+			"  BLAKE2 reference implementation\n"
+#endif
+			,
 			argv[0],
 			argv[0]);
 			return 1;
 	}
+#ifdef WITH_SSL
+        library_ctx = OSSL_LIB_CTX_new();
+        OSSL_PROVIDER_load(library_ctx, "legacy");
+        OSSL_PROVIDER_load(library_ctx, "default");
+        md4 = EVP_MD_fetch(library_ctx, "MD4", NULL);
+        if (md4 == NULL) {
+	    fprintf(stderr, "Error fetching MD4\n");
+        }
+        md5 = EVP_MD_fetch(library_ctx, "MD5", NULL);
+        if (md5 == NULL) {
+	    fprintf(stderr, "Error fetching MD5\n");
+        }
+#endif
 	if(argc == 2) {
+#ifdef WITH_SSL
 		printf("NT:%s\n", ntpwdhash(buf, (unsigned char *)argv[1], 1));
+#else
+		fprintf(stderr, "NT crypt not available (compiled without OpenSSL)\n");
+#endif
 	}
 	else {
 		i = (int)strlen((char *)argv[1]);

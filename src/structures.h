@@ -651,6 +651,8 @@ struct clientparam {
 	struct bandlim	*bandlims[MAXBANDLIMS],
 			*bandlimsout[MAXBANDLIMS];
 
+	PROXYSOCKADDRTYPE udp_relay[3];
+	int udp_nhops;
 	time_t time_start;
 };
 
@@ -771,7 +773,9 @@ extern struct hashtable dns_table;
 extern struct hashtable dns6_table;
 extern struct hashtable auth_table;
 extern struct hashtable pw_table;
+#ifdef WITH_SSL
 extern struct hashtable pwnt_table;
+#endif
 extern struct hashtable pwcr_table;
 extern struct hashtable udp_table;
 

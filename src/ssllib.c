@@ -7,7 +7,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "../../structures.h"
+#include "structures.h"
 #include <memory.h>
 #include <fcntl.h>
 #ifndef _WIN32
@@ -20,27 +20,21 @@
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/provider.h>
 
-#include "../../proxy.h"
-#include "my_ssl.h"
+#include "proxy.h"
+#include "ssl.h"
 
-
-
-
-typedef struct _ssl_conn {
-	SSL_CTX *ctx;
-	SSL *ssl;
-} ssl_conn;
 
 _3proxy_mutex_t ssl_file_mutex;
 
 
 static char errbuf[256];
 
-static char hexMap[] = { 
-                          '0', '1', '2', '3', '4', '5', '6', '7', 
+static char hexMap[] = {
+                          '0', '1', '2', '3', '4', '5', '6', '7',
                           '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
-                        }; 
+                        };
 
 static BIO *bio_err=NULL;
 
@@ -50,25 +44,25 @@ char * getSSLErr(){
     return ERR_error_string(ERR_get_error(), errbuf);
 }
 
-static size_t bin2hex (const unsigned char* bin, size_t bin_length, char* str, size_t str_length) 
+static size_t bin2hex (const unsigned char* bin, size_t bin_length, char* str, size_t str_length)
 {
 	char *p;
 	size_t i;
-	
-	if ( str_length < ( (bin_length*2)+1) ) 
-		return 0; 
 
-	p = str; 
-	for ( i=0; i < bin_length; ++i )  
-	{ 
-		*p++ = hexMap[(*(unsigned char *)bin) >> 4];  
-		*p++ = hexMap[(*(unsigned char *)bin) & 0xf]; 
+	if ( str_length < ( (bin_length*2)+1) )
+		return 0;
+
+	p = str;
+	for ( i=0; i < bin_length; ++i )
+	{
+		*p++ = hexMap[(*(unsigned char *)bin) >> 4];
+		*p++ = hexMap[(*(unsigned char *)bin) & 0xf];
 		++bin;
-	} 
-	
-	*p = 0; 
+	}
 
-	return p - str; 
+	*p = 0;
+
+	return p - str;
 }
 
 static int add_ext(X509 *cert, int nid, char *value)
@@ -227,11 +221,11 @@ void _ssl_cert_free(SSL_CERT cert)
 }
 
 
- 
-/* This array will store all of the mutexes available to OpenSSL. */ 
+
+/* This array will store all of the mutexes available to OpenSSL. */
 static _3proxy_mutex_t *mutex_buf= NULL;
- 
- 
+
+
 static void locking_function(int mode, int n, const char * file, int line)
 {
   if (mode & CRYPTO_LOCK)
@@ -239,7 +233,7 @@ static void locking_function(int mode, int n, const char * file, int line)
   else
     _3proxy_mutex_unlock(mutex_buf + n);
 }
- 
+
 static unsigned long id_function(void)
 {
 #ifdef _WIN32
@@ -248,11 +242,11 @@ static unsigned long id_function(void)
   return ((unsigned long)pthread_self());
 #endif
 }
- 
+
 int thread_setup(void)
 {
   int i;
- 
+
   mutex_buf = malloc(CRYPTO_num_locks(  ) * sizeof(_3proxy_mutex_t));
   if (!mutex_buf)
     return 0;
@@ -262,11 +256,11 @@ int thread_setup(void)
   CRYPTO_set_locking_callback(locking_function);
   return 1;
 }
- 
+
 int thread_cleanup(void)
 {
   int i;
- 
+
   if (!mutex_buf)
     return 0;
   CRYPTO_set_id_callback(NULL);
@@ -284,15 +278,31 @@ int ssl_file_init = 0;
 
 int ssl_init_done = 0;
 
+OSSL_LIB_CTX *library_ctx = NULL;
+extern EVP_MD *md4;
+extern EVP_MD *md5;
+
+
 void ssl_init()
 {
 	if(!ssl_init_done){
+	    
 	    ssl_init_done = 1;
 	    thread_setup();
 	    SSLeay_add_ssl_algorithms();
 	    SSL_load_error_strings();
 	    _3proxy_mutex_init(&ssl_file_mutex);
 	    bio_err=BIO_new_fp(stderr,BIO_NOCLOSE);
-	}
+	    library_ctx = OSSL_LIB_CTX_new();
+	    OSSL_PROVIDER_load(library_ctx, "legacy");
+	    OSSL_PROVIDER_load(library_ctx, "default");
+	    md4 = EVP_MD_fetch(library_ctx, "MD4", NULL);
+	    if (md4 == NULL) {
+    		printf("Error fetching MD4\n");
+	    }
+	    md5 = EVP_MD_fetch(library_ctx, "MD5", NULL);
+	    if (md5 == NULL) {
+    		printf("Error fetching MD5\n");
+	    }
+    	}
 }
-

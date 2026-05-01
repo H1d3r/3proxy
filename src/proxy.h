@@ -15,6 +15,12 @@
 #ifndef _3PROXY_H_
 #define _3PROXY_H_
 #include "version.h"
+
+#ifndef WITH_SSL
+#ifndef NORADIUS
+#define NORADIUS
+#endif
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -169,6 +175,7 @@ extern struct extparam conf;
 extern int timeouts[12];
 
 int sockmap(struct clientparam * param, int timeo, int usesplice);
+int udpsockmap(struct clientparam * param, int timeo);
 int socksend(struct clientparam *param, SOCKET sock, unsigned char * buf, int bufsize, int to);
 int socksendto(struct clientparam *param, SOCKET sock, struct sockaddr * sin, unsigned char * buf, int bufsize, int to);
 int sockrecvfrom(struct clientparam *param, SOCKET sock, struct sockaddr * sin, unsigned char * buf, int bufsize, int to);
@@ -232,7 +239,9 @@ extern int paused;
 extern int demon;
 
 unsigned char * mycrypt(const unsigned char *key, const unsigned char *salt, unsigned char *buf);
+#ifdef WITH_SSL
 unsigned char * ntpwdhash (unsigned char *szHash, const unsigned char *szPassword, int tohex);
+#endif
 int de64 (const unsigned char *in, unsigned char *out, int maxlen);
 unsigned char* en64 (const unsigned char *in, unsigned char *out, int inlen);
 void tohex(unsigned char *in, unsigned char *out, int len);

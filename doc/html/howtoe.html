@@ -33,8 +33,9 @@
 		<li><a href="#NAMES">How to resolve names through a parent proxy</a></li>
 		<li><a href="#ISFTP">How to set up an FTP proxy</a></li>
 		<li><a href="#TLSPR">How to set up an SNI proxy (tlspr)</a></li>
-		<li><a href="#SSLPLUGIN">How to set up TLS/SSL with SSLPlugin (https proxy, mTLS)</a></li>
-		<li><a href="#CERTIFICATES">How to create CA and certificates for SSLPlugin</a></li>
+		<li><a href="#SSLPLUGIN">How to set up TLS/SSL (https proxy, mTLS)</a></li>
+		<li><a href="#CERTIFICATES">How to create CA and certificates for SSL</a></li>
+		<li><a href="#PCRE">How to use PCRE filtering (regular expressions)</a></li>
 		<li><A HREF="#AUTH">How to limit service access</A>
 		<li><A HREF="#USERS">How to create a user list</A>
 		<li><A HREF="#ACL">How to limit user access to resources</A>
@@ -639,9 +640,12 @@ allow *
 proxy
 </pre>
   </p>
-		<li><a name="SSLPLUGIN"><i>How to set up TLS/SSL with SSLPlugin (https proxy, mTLS)</i></a>
+		<li><a name="SSLPLUGIN"><i>How to set up TLS/SSL (https proxy, mTLS)</i></a>
 <p>
-SSLPlugin provides TLS/SSL support for 3proxy. It can be used to:
+Since version 0.9.7, SSL/TLS support is built into 3proxy when compiled with OpenSSL
+(WITH_SSL). Previously available as SSLPlugin, the functionality is now integrated
+into the main binary. The plugin line is no longer required.
+SSL/TLS support can be used to:
 <ul>
 <li>Create an https:// proxy (TLS-encrypted connection between client and proxy)</li>
 <li>Implement MITM for TLS traffic inspection</li>
@@ -654,7 +658,6 @@ SSLPlugin provides TLS/SSL support for 3proxy. It can be used to:
 <br>To create an https:// proxy, you need a server certificate and key. The certificate must not be self-signed
 and should contain Subject Alternative Names (SAN) for the proxy hostname/IP.
 </p><pre>
-plugin /path/to/SSLPlugin.ld.so ssl_plugin
 ssl_server_cert /etc/3proxy/certs/server.crt
 ssl_server_key /etc/3proxy/certs/server.key
 ssl_serv
@@ -670,7 +673,6 @@ Configure clients to use https://proxy-host:3129/ as the proxy URL.
 <b>Client certificate authentication (mTLS):</b>
 <br>To require clients to authenticate with a certificate, use ssl_server_verify and provide the CA certificate:
 </p><pre>
-plugin /path/to/SSLPlugin.ld.so ssl_plugin
 ssl_server_cert /etc/3proxy/certs/server.crt
 ssl_server_key /etc/3proxy/certs/server.key
 ssl_server_ca_file /etc/3proxy/certs/ca.crt
@@ -685,7 +687,6 @@ Only clients with a valid certificate signed by the CA can connect.
 <b>MITM for TLS traffic inspection:</b>
 <br>To intercept and decrypt TLS traffic, you need a CA certificate to generate spoofed server certificates:
 </p><pre>
-plugin /path/to/SSLPlugin.ld.so ssl_plugin
 ssl_server_ca_file /etc/3proxy/certs/ca.crt
 ssl_server_ca_key /etc/3proxy/certs/ca.key
 ssl_client_verify
@@ -703,7 +704,6 @@ Without ssl_client_verify, the proxy is vulnerable to MITM attacks.
 <b>TLS client (connect to upstream via TLS):</b>
 <br>To connect to upstream servers via TLS with client certificate authentication:
 </p><pre>
-plugin /path/to/SSLPlugin.ld.so ssl_plugin
 ssl_client_cert /etc/3proxy/certs/client.crt
 ssl_client_key /etc/3proxy/certs/client.key
 ssl_client_verify
@@ -715,7 +715,6 @@ proxy -p3128
 <b>Conditional TLS for parent proxy (ssl_client_mode 3):</b>
 <br>With ssl_client_mode 3, TLS handshake to parent proxy is performed only if the parent type ends with 's' (secure types). This allows mixing secure and non-secure parent proxies in the same configuration:
 </p><pre>
-plugin /path/to/SSLPlugin.ld.so ssl_plugin
 ssl_server_cert /etc/3proxy/certs/server.crt
 ssl_server_key /etc/3proxy/certs/server.key
 ssl_client_mode 3
@@ -734,7 +733,7 @@ ssl_nocli
 <p>
 This creates an HTTPS proxy (ssl_serv) that accepts TLS connections from clients. For parent proxy connections, user1's traffic goes through an https parent with TLS encryption (secure type), while user2's traffic goes through a regular socks5 parent without TLS. Secure parent types include: tcps, https, connects, connect+s, socks4s, socks5s, socks4+s, socks5+s, pop3s, smtps, ftps.
 </p>
-		<li><a name="CERTIFICATES"><i>How to create CA and certificates for SSLPlugin</i></a>
+		<li><a name="CERTIFICATES"><i>How to create CA and certificates for SSL</i></a>
 <p>
 <b>Creating a Certificate Authority (CA):</b>
 <br>For MITM or mTLS, you need a CA. Generate a CA private key and certificate:
@@ -849,6 +848,65 @@ openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key \
 openssl pkcs12 -export -out client.p12 -passout pass: \
     -inkey client.key -in client.crt -certfile ca.crt
 </pre>
+		<li><a name="PCRE"><i>How to use PCRE filtering (regular expressions)</i></a>
+<p>
+Since version 0.9.7, PCRE (Perl Compatible Regular Expressions) filtering is built into
+3proxy when compiled with PCRE2 support (WITH_PCRE). Previously available as PCREPlugin,
+the functionality is now integrated into the main binary. The plugin line is no longer required.
+</p>
+<p>
+PCRE filtering can be used to create matching and replacement rules with regular expressions
+for client requests, client and server headers, and client and server data.
+</p>
+<p>
+<b>Commands:</b>
+</p><pre>
+pcre TYPE FILTER_ACTION REGEXP [ACE]
+pcre_rewrite TYPE FILTER_ACTION REGEXP REWRITE_EXPRESSION [ACE]
+pcre_extend FILTER_ACTION [ACE]
+pcre_options OPTION1 [...]
+</pre>
+<p>
+<ul>
+<li><b>TYPE</b> - type of filtered data (comma-delimited list):
+ <ul>
+ <li><b>request</b> - content of the client's request (e.g., HTTP GET request string)
+ <li><b>cliheader</b> - content of the client request headers
+ <li><b>srvheader</b> - content of the server's reply headers
+ <li><b>clidata</b> - data received from the client (e.g., HTTP POST data)
+ <li><b>srvdata</b> - data received from the server (e.g., HTML page)
+ </ul>
+<li><b>FILTER_ACTION</b> - action on match:
+ <ul>
+ <li><b>allow</b> - allow this request without checking the rest of the rules
+ <li><b>deny</b> - deny this request without checking the rest of the rules
+ <li><b>dunno</b> - continue with the rest of the rules (useful with pcre_rewrite)
+ </ul>
+<li><b>REGEXP</b> - PCRE (Perl) regular expression. Use * if no regexp matching is required.
+<li><b>REWRITE_EXPRESSION</b> - substitution string. May contain Perl-style substrings
+$1, $2, etc. $0 means the whole matched string. \r and \n may be used to insert new lines.
+<li><b>ACE</b> - access control entry (user names, source IPs, destination IPs, ports, etc.),
+identical to allow/deny/bandlimin commands. The regular expression is only matched if the ACL
+matches the connection data.
+</ul>
+</p>
+<p>
+<b>Examples:</b>
+</p><pre>
+# Block requests containing specific keywords for certain users
+pcre request deny "porn|sex" user1,user2,user3 192.168.0.0/16
+
+# Block responses with specific content type
+pcre srvheader deny "Content-type: application"
+
+# Replace content in both directions (censorship)
+pcre_rewrite clidata,srvdata dunno "porn|sex|pussy" "***" baduser
+pcre_extend deny * 192.168.0.1/16
+</pre>
+<p>
+<b>Note:</b> Regular expressions don't require authentication and cannot replace
+authentication and/or allow/deny ACLs.
+</p>
 		<li><A NAME="AUTH">How to limit service access</A>
 <p>
 First, always specify the internal interface to accept incoming connections with the

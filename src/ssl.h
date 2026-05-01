@@ -1,5 +1,5 @@
-#ifndef __my_ssl_h__
-#define __my_ssl_h__
+#ifndef __ssl_h__
+#define __ssl_h__
 
 //
 // opaque connection structure
@@ -9,6 +9,11 @@ typedef void *SSL_CONN;
 // opaque certificate structure
 //
 typedef void *SSL_CERT;
+
+typedef struct _ssl_conn {
+	SSL_CTX *ctx;
+	SSL *ssl;
+} ssl_conn;
 
 struct alpn {
     unsigned char *protos;
@@ -65,7 +70,7 @@ SSL_CONN ssl_handshake_to_client(SOCKET s, SSL_CONFIG *config, X509 *server_cert
 SSL_CONN ssl_handshake_to_server(SOCKET s, char * hostname, SSL_CONFIG *config, SSL_CERT *server_cert, char **errSSL);
 
 //
-// SSL/TLS Read/Write       
+// SSL/TLS Read/Write
 //
 int ssl_read(SSL_CONN connection, void * buf, int bufsize);
 int ssl_write(SSL_CONN connection, void * buf, int bufsize);
@@ -83,5 +88,10 @@ void _ssl_cert_free(SSL_CERT cert);
 void ssl_init(void);
 char * getSSLErr(void);
 
+//
+// Built-in SSL installation (called from 3proxy.c)
+//
+void ssl_install(void);
+
 extern struct sockfuncs sso;
-#endif // __my_ssl_h__
+#endif // __ssl_h__

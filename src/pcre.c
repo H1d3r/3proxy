@@ -5,7 +5,7 @@
 
 */
 
-#include "../../structures.h"
+#include "structures.h"
 #include <string.h>
 #define PCRE2_CODE_UNIT_WIDTH 8
 #define PCRE2_STATIC
@@ -261,7 +261,7 @@ static int h_pcre(int argc, unsigned char **argv){
 	PCRE2_SIZE erroffset;
 	struct pcre_filter_data *flt;
 	struct filter *newf;
-	char *replace = NULL;
+	char * replace = NULL;
 
 	if(!strncmp((char *)argv[2], "allow",5)) action = PASS;
 	else if(!strncmp((char *)argv[2], "deny",4)) action = REJECT;
@@ -368,7 +368,7 @@ static int h_pcre_rewrite(int argc, unsigned char **argv){
 	PCRE2_SIZE erroffset;
 	struct pcre_filter_data *flt;
 	struct filter *newf;
-	char *replace = NULL;
+	char * replace = NULL;
 
 	if(!strncmp((char *)argv[2], "allow",5)) action = PASS;
 	else if(!strncmp((char *)argv[2], "deny",4)) action = REJECT;
@@ -503,17 +503,11 @@ static struct symbol regexp_symbols[] = {
 	{NULL, "pcre_options", (void *)&pcre_options},
 };
 
-#ifdef WATCOM
-#pragma aux pcre_plugin "*" parm caller [ ] value struct float struct routine [eax] modify [eax ecx edx]
-#undef PLUGINCALL
-#define PLUGINCALL
-#endif
 
-PLUGINAPI int PLUGINCALL pcre_plugin (struct pluginlink * pluginlink,
-					 int argc, char** argv){
+void pcre_install(void){
 
 	struct filter *flt, *tmpflt;
-	pl = pluginlink;
+	pl = &pluginlink;
 	pcre_options = 0;
 	if(!pcre_loaded){
 		pcre_loaded = 1;
@@ -537,9 +531,8 @@ PLUGINAPI int PLUGINCALL pcre_plugin (struct pluginlink * pluginlink,
 		}
 	}
 	pcre_last_filter = NULL;
-	return 0;
-
  }
+
 #ifdef  __cplusplus
 }
 #endif

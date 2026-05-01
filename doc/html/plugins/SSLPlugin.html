@@ -1,6 +1,11 @@
-<h3>3proxy SSL/TLS Plugin</h3>
+<h3>3proxy SSL/TLS Support</h3>
 
-This plugin can be used to transparently decrypt SSL/TLS data, provide TLS encryption for proxy traffic, and authenticate using client certificates.
+<p><b>Note:</b> Since version 0.9.7, SSL/TLS support is built into 3proxy and does not require
+a separate plugin. All ssl_* commands are available directly when 3proxy is compiled with
+OpenSSL support (WITH_SSL). The plugin line is no longer needed.</p>
+
+<p>SSL/TLS support can be used to transparently decrypt SSL/TLS data, provide TLS encryption
+for proxy traffic, and authenticate using client certificates.</p>
 
 <h4>For transparent certificate spoofing (MITM):</h4>
 
@@ -55,7 +60,6 @@ Generated certificates are placed in the same path.
 
 <h4>MITM example:</h4>
 <pre>
-plugin /path/to/SSLPlugin.so ssl_plugin
 ssl_server_ca_file /path/to/cafile
 ssl_server_ca_key /path/to/cakey
 ssl_mitm
@@ -67,7 +71,6 @@ MITM's traffic with a spoofed certificate for the port 3128 proxy.
 
 <h4>https:// proxy example:</h4>
 <pre>
-plugin /path/to/SSLPlugin.so ssl_plugin
 ssl_server_cert path_to_cert
 ssl_server_key path_to_key
 ssl_serv
@@ -79,7 +82,6 @@ Creates an https:// proxy on port 33128 and an http:// proxy on port 3128
 
 <h4>TLS client example (connect to upstream via TLS):</h4>
 <pre>
-plugin /path/to/SSLPlugin.so ssl_plugin
 ssl_client_cert /path/to/client.crt
 ssl_client_key /path/to/client.key
 ssl_client_verify
@@ -91,7 +93,6 @@ Creates an HTTP proxy that connects to upstream servers via TLS with client cert
 
 <h4>Conditional TLS for parent proxy (ssl_client_mode 3):</h4>
 <pre>
-plugin /path/to/SSLPlugin.so ssl_plugin
 ssl_server_cert /path/to/server.crt
 ssl_server_key /path/to/key
 ssl_client_mode 3
@@ -111,7 +112,6 @@ Creates an HTTP proxy on port 3128 that uses TLS for client connections (ssl_ser
 
 <h4>mTLS example (require client certificate):</h4>
 <pre>
-plugin /path/to/SSLPlugin.so ssl_plugin
 ssl_server_cert /path/to/server.crt
 ssl_server_key /path/to/server.key
 ssl_server_ca_file /path/to/ca.crt

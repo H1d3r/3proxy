@@ -223,8 +223,10 @@ int strongauth(struct clientparam * param){
 	if (!param->pwtype && param->password) {
 		if (pw_table.ihashtable && hashresolv(&pw_table, param, &dummy, NULL))
 			return 0;
+#ifdef WITH_SSL
 		if (pwnt_table.ihashtable && hashresolv(&pwnt_table, param, &dummy, NULL))
 			return 0;
+#endif
 #ifndef NOCRYPT
 		if (pwcr_table.ihashtable && hashresolv(&pwcr_table, param, cryptpw, NULL)) {
 			if (!strcmp(cryptpw, (char *)mycrypt(param->password, (unsigned char *)cryptpw, buf)))

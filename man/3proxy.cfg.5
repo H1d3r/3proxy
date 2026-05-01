@@ -1135,7 +1135,7 @@ memory shortage, you can try to experiment with negative values.
 \fI<path_to_shared_library>\fR \fI<function_to_call>\fR [\fI<arg1>\fR ...]
 .br
  Loads specified library and calls given export function with given arguments,
-as 
+as
 .br
  int functions_to_call(struct pluginlink * pl, int argc, char * argv[]);
 .br
@@ -1148,6 +1148,203 @@ as
  If Content-length (or another data length) is greater than the given value, no
 data filtering will be performed through filtering plugins to avoid data
 corruption and/or Content-Length changing. Default is 1MB (1048576).
+
+.SH SSL/TLS SUPPORT
+SSL/TLS support is built into 3proxy (since 0.9.7) when compiled with OpenSSL
+(WITH_SSL). Previously available as SSLPlugin, the functionality is now integrated
+into the main binary. The plugin line is no longer required.
+
+SSL/TLS can be used for:
+- transparent MITM (Man-in-the-Middle) for TLS traffic inspection
+- https:// proxy (TLS-encrypted connection between client and proxy)
+- TLS client connections to upstream servers with certificate authentication
+- mTLS (mutual TLS) requiring client certificates
+
+.SS MITM Commands
+.br
+.BR ssl_mitm
+- spoof certificates for services started below. Usage without ssl_client_verify is insecure.
+.br
+.BR ssl_nomitm
+- do not spoof certificates for services started below
+
+.SS Server TLS Commands
+.br
+.BR ssl_serv
+(or ssl_server) - require TLS connection from clients for services below
+.br
+.BR ssl_noserv
+(or ssl_noserver) - do not require TLS connection from clients for services below
+
+.SS Client TLS Commands
+.br
+.BR ssl_cli
+(or ssl_client) - establish TLS connection to upstream server for services below
+.br
+.BR ssl_nocli
+(or ssl_noclient) - do not establish TLS connection to upstream server for services below
+
+.SS SSL Parameters
+.br
+.BR ssl_server_cert
+\fI/path/to/cert\fR - Server certificate (should not be self-signed, must contain SAN) for ssl_serv
+.br
+.BR ssl_server_key
+\fI/path/to/key\fR - Server certificate key for ssl_server_cert or generated MITM certificate
+.br
+.BR ssl_client_cert
+\fI/path/to/cert\fR - Client certificate for authentication on upstream server (used with ssl_cli)
+.br
+.BR ssl_client_key
+\fI/path/to/key\fR - Client certificate key for ssl_client_cert
+.br
+.BR ssl_client_ciphersuites
+\fIciphersuites_list\fR - TLS client ciphers for TLS 1.3
+.br
+.BR ssl_server_ciphersuites
+\fIciphersuites_list\fR - TLS server ciphers for TLS 1.3
+.br
+.BR ssl_client_cipher_list
+\fIciphers_list\fR - TLS client ciphers for TLS 1.2 and below
+.br
+.BR ssl_server_cipher_list
+\fIciphers_list\fR - TLS server ciphers for TLS 1.2 and below
+.br
+.BR ssl_client_min_proto_version
+\fItls_version\fR - TLS client minimum TLS version (e.g., TLSv1.2)
+.br
+.BR ssl_server_min_proto_version
+\fItls_version\fR - TLS server minimum TLS version
+.br
+.BR ssl_client_max_proto_version
+\fItls_version\fR - TLS client maximum TLS version
+.br
+.BR ssl_server_max_proto_version
+\fItls_version\fR - TLS server maximum TLS version
+.br
+.BR ssl_client_verify
+- verify the certificate for the upstream server (used with ssl_mitm or ssl_cli)
+.br
+.BR ssl_client_no_verify
+- do not verify the certificate for the upstream server (default)
+.br
+.BR ssl_server_verify
+- require client certificate authentication (mTLS) for ssl_serv
+.br
+.BR ssl_server_no_verify
+- do not require client certificate (default)
+.br
+.BR ssl_server_ca_file
+\fI/path/to/cafile\fR - CA certificate file for MITM
+.br
+.BR ssl_server_ca_key
+\fI/path/to/cakey\fR - key for ssl_server_ca_file MITM CA
+.br
+.BR ssl_server_ca_dir
+\fI/path/to/cadir\fR - CA directory for ssl_server_verify
+.br
+.BR ssl_server_ca_store
+\fI/path/to/castore\fR - CA store for ssl_server_verify (OpenSSL 3.0+)
+.br
+.BR ssl_client_ca_file
+\fI/path/to/cafile\fR - CA file for ssl_client_verify
+.br
+.BR ssl_client_ca_dir
+\fI/path/to/cadir\fR - CA directory for ssl_client_verify
+.br
+.BR ssl_client_ca_store
+\fI/path/to/castore\fR - CA store for ssl_client_verify (OpenSSL 3.0+)
+.br
+.BR ssl_client_sni
+\fIhostname\fR - SNI hostname to send to upstream server
+.br
+.BR ssl_client_alpn
+\fIprotocol1 protocol2 ...\fR - ALPN protocols to negotiate with upstream server
+.br
+.BR ssl_client_mode
+\fImode\fR - when to establish TLS connection: 0 - on connect (default), 1 - after authentication, 2 - before data, 3 - only for secure parent types (ending with 's')
+.br
+.BR ssl_certcache
+\fI/path/to/cache/\fR - location for the generated MITM certificates cache
+
+.SH PCRE FILTERING
+PCRE (Perl Compatible Regular Expressions) filtering is built into 3proxy
+(since 0.9.7) when compiled with PCRE2 support (WITH_PCRE). Previously
+available as PCREPlugin, the functionality is now integrated into the main
+binary. The plugin line is no longer required.
+
+PCRE filtering allows creating matching and replacement rules with regular
+expressions for client requests, headers, and data.
+
+.SS PCRE Commands
+.br
+.BR pcre
+\fITYPE FILTER_ACTION REGEXP [ACE]\fR
+.br
+Apply a rule for matching regular expression.
+.br
+.BR pcre_rewrite
+\fITYPE FILTER_ACTION REGEXP REWRITE_EXPRESSION [ACE]\fR
+.br
+Match and replace with rewrite expression.
+.br
+.BR pcre_extend
+\fIFILTER_ACTION [ACE]\fR
+.br
+Extend the ACL of the last pcre or pcre_rewrite command by adding an additional ACE.
+.br
+.BR pcre_options
+\fIOPTION1 [OPTION2 ...]\fR
+.br
+Set matching options. Both PCRE2 native options and PCRE compatibility options
+are supported. PCRE options are mapped to their PCRE2 equivalents for backward
+compatibility.
+.br
+PCRE2 options: PCRE2_CASELESS, PCRE2_MULTILINE, PCRE2_DOTALL, PCRE2_EXTENDED,
+PCRE2_DOLLAR_ENDONLY, PCRE2_UNGREEDY, PCRE2_UTF, PCRE2_UCP, PCRE2_NO_AUTO_CAPTURE,
+PCRE2_FIRSTLINE, PCRE2_DUPNAMES, PCRE2_MATCH_UNSET_BACKREF, PCRE2_ALT_BSUX,
+PCRE2_ALT_CIRCUMFLEX, PCRE2_ALT_VERBNAMES, PCRE2_USE_OFFSET_LIMIT, PCRE2_EXTENDED_MORE,
+PCRE2_LITERAL, PCRE2_MATCH_INVALID_UTF.
+.br
+PCRE compatibility options: PCRE_CASELESS, PCRE_MULTILINE, PCRE_DOTALL, PCRE_EXTENDED,
+PCRE_ANCHORED, PCRE_DOLLAR_ENDONLY, PCRE_EXTRA, PCRE_NOTBOL, PCRE_NOTEOL, PCRE_UNGREEDY,
+PCRE_NOTEMPTY, PCRE_UTF8, PCRE_NO_AUTO_CAPTURE, PCRE_NO_UTF8_CHECK, PCRE_AUTO_CALLOUT,
+PCRE_PARTIAL, PCRE_DFA_SHORTEST, PCRE_DFA_RESTART, PCRE_FIRSTLINE, PCRE_DUPNAMES,
+PCRE_NEWLINE_CR, PCRE_NEWLINE_LF, PCRE_NEWLINE_CRLF, PCRE_NEWLINE_ANY, PCRE_NEWLINE_ANYCRLF,
+PCRE_BSR_ANYCRLF, PCRE_BSR_UNICODE.
+
+.SS PCRE Parameters
+TYPE - type of filtered data (comma-delimited list):
+.br
+ request - content of the client's request (e.g., HTTP GET request string)
+.br
+ cliheader - content of the client request headers
+.br
+ srvheader - content of the server's reply headers
+.br
+ clidata - data received from the client (e.g., HTTP POST data)
+.br
+ srvdata - data received from the server (e.g., HTML page)
+
+FILTER_ACTION - action on match:
+.br
+ allow - allow this request without checking the rest of the rules
+.br
+ deny - deny this request without checking the rest of the rules
+.br
+ dunno - continue with the rest of the rules (useful with pcre_rewrite)
+
+REGEXP - PCRE (Perl) regular expression. Use * if no regexp matching is required.
+
+REWRITE_EXPRESSION - substitution string. May contain Perl-style substrings
+$1, $2, etc. $0 means the whole matched string. \er and \en may be used
+to insert new lines; the string may be empty ("").
+
+ACE - access control entry (user names, source IPs, destination IPs, ports, etc.),
+identical to allow/deny/bandlimin commands. The regular expression is only
+matched if the ACL matches the connection data.
+Warning: Regular expressions don't require authentication and cannot replace
+authentication and/or allow/deny ACLs.
 
 .SH BUGS
 Report all bugs to

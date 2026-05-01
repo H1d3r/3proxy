@@ -5,21 +5,17 @@
 
 */
 
-#include "../../structures.h"
+#include "structures.h"
 #include <openssl/crypto.h>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include "../../proxy.h"
-#include "my_ssl.h"
+#include "proxy.h"
+#include "ssl.h"
 
 #ifndef _WIN32
 #define WINAPI
-#endif
-
-#ifdef  __cplusplus
-extern "C" {
 #endif
 
 #ifndef isnumber
@@ -62,11 +58,6 @@ static char * server_cipher_list = NULL;
 static char * client_sni = NULL;
 static int client_mode = 0;
 
-typedef struct _ssl_conn {
-	SSL_CTX *ctx;
-	SSL *ssl;
-} ssl_conn;
-
 
 struct SSLsock {
 	SOCKET s;
@@ -92,8 +83,8 @@ static struct SSLsock *searchSSL(void* state, SOCKET s){
 #define SOSTATE ((struct SSLstate *)(param->sostate))
 
 static void addSSL(
-    SOCKET cli_s, SSL_CONN cli_conn, 
-    SOCKET srv_s, SSL_CONN srv_conn, 
+    SOCKET cli_s, SSL_CONN cli_conn,
+    SOCKET srv_s, SSL_CONN srv_conn,
     struct clientparam* param){
 	if(!param->sostate) return;
 	if (cli_s != INVALID_SOCKET){
@@ -264,7 +255,7 @@ SSL_CONN ssl_handshake_to_server(SOCKET s, char * hostname, SSL_CONFIG *config, 
     }
     if(hostname && *hostname && config->client_verify){
         X509_VERIFY_PARAM *param;
-        
+
         param = SSL_get0_param(conn->ssl);
         X509_VERIFY_PARAM_set1_host(param, hostname, strlen(hostname));
     }
@@ -305,7 +296,7 @@ SSL_CONN ssl_handshake_to_server(SOCKET s, char * hostname, SSL_CONFIG *config, 
 
     if(server_cert){
         X509 *cert;
-        cert = SSL_get_peer_certificate(conn->ssl);     
+        cert = SSL_get_peer_certificate(conn->ssl);
         if(!cert) {
 	ssl_conn_free(conn);
 	return NULL;
@@ -375,7 +366,7 @@ SSL_CONN ssl_handshake_to_client(SOCKET s, SSL_CONFIG *config, X509 *server_cert
 	return NULL;
     }
 
-    cert = SSL_get_peer_certificate(conn->ssl);     
+    cert = SSL_get_peer_certificate(conn->ssl);
 
     if ( cert != NULL )
 	X509_free(cert);
@@ -424,7 +415,7 @@ int domitm(struct clientparam* param){
  }
 
  ClientConn = ssl_handshake_to_client(param->clisock, PCONF, FakeCert, PCONF->server_key?PCONF->server_key:PCONF->CA_key, &errSSL);
- 
+
  _ssl_cert_free(FakeCert);
  if ( ClientConn == NULL ) {
 	param->res = 8012;
@@ -462,7 +453,7 @@ int docli(struct clientparam* param){
 X509 * getCert (const char *fname){
     BIO *f;
     X509 *CA_cert;
-    
+
     f = BIO_new_file(fname, "r");
     if(!f) return NULL;
     CA_cert=PEM_read_bio_X509(f, NULL, NULL, NULL);
@@ -478,7 +469,7 @@ EVP_PKEY * getKey(const char *fname){
     if(!f) return NULL;
     key = PEM_read_bio_PrivateKey(f, NULL, NULL, NULL);
     BIO_free(f);
-    
+
     return key;
 }
 
@@ -532,8 +523,8 @@ SSL_CTX * ssl_cli_ctx(SSL_CONFIG *config, X509 *server_cert, EVP_PKEY *server_ke
                 else if(config->server_ca_store){
                     SSL_CTX_load_verify_store(ctx, config->server_ca_store);
                 }
-#endif          
-                else 
+#endif
+                else
                     SSL_CTX_set_default_verify_paths(ctx);
                 SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT|SSL_VERIFY_CLIENT_ONCE, NULL);
     }
@@ -545,7 +536,7 @@ static void* ssl_filter_open(void * idata, struct srvparam * srv){
 	char fname[256];
 	char *errSSL;
 	struct ssl_config *sc;
-	
+
 	sc = malloc(sizeof(struct ssl_config));
 	if(!sc) return NULL;
 	memset(sc, 0, sizeof(struct ssl_config));
@@ -689,8 +680,8 @@ static void* ssl_filter_open(void * idata, struct srvparam * srv){
 		else if(sc->client_ca_store){
 		    SSL_CTX_load_verify_store(sc->srv_ctx, sc->client_ca_store);
 		}
-#endif		
-		else 
+#endif
+		else
 		    SSL_CTX_set_default_verify_paths(sc->srv_ctx);
 		    SSL_CTX_set_verify(sc->srv_ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 	    }
@@ -777,7 +768,7 @@ static FILTER_ACTION ssl_parent(struct clientparam * param){
 
 static void ssl_filter_clear(void *state){
     struct clientparam *param;
-    
+
     if(!state) return;
     param = STATE->param;
     free(state);
@@ -834,13 +825,13 @@ static struct filter ssl_filter = {
 	"ssl_filter",
 	ssl_filter_open,
 	ssl_filter_client,
-	NULL, 
-	ssl_filter_connect, 
-	ssl_filter_afterauth, 
-	NULL, NULL, 
+	NULL,
+	ssl_filter_connect,
+	ssl_filter_afterauth,
+	NULL, NULL,
 	ssl_filter_predata,
 	NULL, NULL,
-	ssl_filter_clear, 
+	ssl_filter_clear,
 	ssl_filter_close
 };
 
@@ -1027,7 +1018,7 @@ static int h_client_alpn(int argc, unsigned char **argv){
 
     for(len = 0, i = 1; i < argc; i++){
 	int l;
-	
+
 	l = strlen((char *)argv[i]);
 	if(l >= 255) return 2;
 	client_alpn_protos.protos[len++] = l;
@@ -1084,7 +1075,7 @@ int string_to_version(unsigned char *ver){
 	if(!strcasecmp(versions[i].sver, (char *)ver)) return versions[i].iver;
     }
     return 0;
-} 
+}
 
 static int h_client_min_proto_version(int argc, unsigned char **argv){
 	client_min_proto_version = argc>1? string_to_version(argv[1]) : 0;
@@ -1178,21 +1169,13 @@ static struct symbol ssl_symbols[] = {
 };
 
 
-#ifdef WATCOM
-#pragma aux ssl_plugin "*" parm caller [ ] value struct float struct routine [eax] modify [eax ecx edx]
-#undef PLUGINCALL
-#define PLUGINCALL
-#endif
-
-PLUGINAPI int PLUGINCALL ssl_plugin (struct pluginlink * pluginlink, 
-					 int argc, char** argv){
-
+void ssl_install(void){
 
 	h_nomitm(0, NULL);
 	h_noserv(0, NULL);
 	h_nocli(0, NULL);
 
-	pl = pluginlink;
+	pl = &pluginlink;
 
 	free(certcache);
 	certcache = NULL;
@@ -1244,18 +1227,13 @@ PLUGINAPI int PLUGINCALL ssl_plugin (struct pluginlink * pluginlink,
 		pl->symbols.next = ssl_symbols;
 	}
 
-	tcppmfunc = (PROXYFUNC)pl->findbyname("tcppm");	
-	if(!tcppmfunc){return 13;}
-	proxyfunc = (PROXYFUNC)pl->findbyname("proxy");	
+	tcppmfunc = (PROXYFUNC)pl->findbyname("tcppm");
+	if(!tcppmfunc) return;
+	proxyfunc = (PROXYFUNC)pl->findbyname("proxy");
 	if(!proxyfunc)proxyfunc = tcppmfunc;
-	smtppfunc = (PROXYFUNC)pl->findbyname("smtpp");	
+	smtppfunc = (PROXYFUNC)pl->findbyname("smtpp");
 	if(!smtppfunc)smtppfunc = tcppmfunc;
-	ftpprfunc = (PROXYFUNC)pl->findbyname("ftppr");	
+	ftpprfunc = (PROXYFUNC)pl->findbyname("ftppr");
 	if(!ftpprfunc)ftpprfunc = tcppmfunc;
 
-	return 0;
-		
  }
-#ifdef  __cplusplus
-}
-#endif
