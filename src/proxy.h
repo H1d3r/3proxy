@@ -35,7 +35,6 @@
 #define _PASSWORD_LEN 256
 #define MAXNSERVERS 5
 
-#define UDPBUFSIZE 16384
 #define TCPBUFSIZE 65536
 #define SRVBUFSIZE (param->srv->bufsize?param->srv->bufsize:((param->service == S_UDPPM)?UDPBUFSIZE:TCPBUFSIZE))
 
@@ -231,7 +230,7 @@ void dumpcounters(struct trafcount *tl, int counterd);
 
 int startconnlims (struct clientparam *param);
 void stopconnlims (struct clientparam *param);
-
+int socks5_udp_build_hdr(unsigned char *buf, PROXYSOCKADDRTYPE *addr);
 
 
 extern struct auth authfuncs[];

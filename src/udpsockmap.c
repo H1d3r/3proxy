@@ -8,7 +8,7 @@
 
 #include "proxy.h"
 
-static int socks5_udp_build_hdr(unsigned char *buf, PROXYSOCKADDRTYPE *addr)
+int socks5_udp_build_hdr(unsigned char *buf, PROXYSOCKADDRTYPE *addr)
 {
 	buf[0] = buf[1] = buf[2] = 0;
 	buf[3] = (*SAFAMILY(addr) == AF_INET) ? 1 : 4;
@@ -57,7 +57,6 @@ int udpsockmap(struct clientparam *param, int timeo)
 	int nhops = param->udp_nhops;
 	int clisock_idx = -1, ctrlsock_idx = -1, ctrlsocksrv_idx = -1;
 	int firstpacket = 1;
-
 	if (param->srvbufsize < UDPBUFSIZE) {
 		unsigned char *newbuf = myrealloc(param->srvbuf, UDPBUFSIZE);
 		if (!newbuf) return 21;
@@ -92,7 +91,7 @@ int udpsockmap(struct clientparam *param, int timeo)
 
 	for (;;) {
 		res = param->srv->so._poll(param->sostate, fds, nfds, timeo * 1000);
-		if (res < 0) return 463;
+		if (res < 0) return 481;
 		if (res == 0) return 92;
 
 		/* datagram from client */
@@ -104,7 +103,7 @@ int udpsockmap(struct clientparam *param, int timeo)
 			len = param->srv->so._recvfrom(param->sostate, param->clisock,
 				(char *)param->srvbuf + recvoff, UDPBUFSIZE - recvoff,
 				0, (struct sockaddr *)&sin, &sasize);
-			if (len <= 0) return 464;
+			if (len <= 0) return 482;
 
 			if (SAADDRLEN(&sin) != SAADDRLEN(&param->sincr) ||
 			    memcmp(SAADDR(&sin), SAADDR(&param->sincr), SAADDRLEN(&sin)))
@@ -119,7 +118,7 @@ int udpsockmap(struct clientparam *param, int timeo)
 			if (nhops == 0) {
 				int i;
 				if (len < 10 || param->srvbuf[0] || param->srvbuf[1] || param->srvbuf[2])
-					return 466;
+					return 483;
 				switch (param->srvbuf[3]) {
 				case 1:
 					*SAFAMILY(&param->sinsr) = AF_INET;
@@ -127,14 +126,14 @@ int udpsockmap(struct clientparam *param, int timeo)
 					i = 8;
 					break;
 				case 4:
-					if (len < 22) return 466;
+					if (len < 22) return 484;
 					*SAFAMILY(&param->sinsr) = AF_INET6;
 					memcpy(SAADDR(&param->sinsr), param->srvbuf + 4, 16);
 					i = 20;
 					break;
 				case 3: {
 					int sz = param->srvbuf[4], j;
-					if (len < 7 + sz) return 466;
+					if (len < 7 + sz) return 485;
 					for (j = 4; j < 4 + sz; j++) param->srvbuf[j] = param->srvbuf[j + 1];
 					param->srvbuf[4 + sz] = 0;
 					i = 5 + sz;
@@ -175,7 +174,7 @@ int udpsockmap(struct clientparam *param, int timeo)
 			len = param->srv->so._recvfrom(param->sostate, param->remsock,
 				(char *)param->srvbuf + hdrsize, UDPBUFSIZE - hdrsize, 0,
 				(struct sockaddr *)&from, &sasize);
-			if (len <= 0) return 468;
+			if (len <= 0) return 486;
 			if (nhops >= 1) {
 				if (!SAISNULL(&param->sinsr) && *SAPORT(&param->sinsr)) {
 					if (SAADDRLEN(&from) != SAADDRLEN(&param->sinsr) ||

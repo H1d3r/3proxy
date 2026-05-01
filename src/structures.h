@@ -183,7 +183,7 @@ int
 #endif
 
 #define MAX_HASH_SIZE (16)
-
+#define UDPBUFSIZE 16384
 
 extern char* NULLADDR;
 typedef enum {
@@ -517,6 +517,11 @@ struct srvparam {
 	AUTHFUNC authfunc;
 	PROXYFUNC pf;
 	SOCKET srvsock, cbsock;
+#ifndef NOUDPMAIN
+	unsigned char udpbuf[UDPBUFSIZE];
+	unsigned char udpbuf2[UDPBUFSIZE];
+	int udplen;
+#endif
 	int childcount;
 	int maxchild;
 	int backlog;

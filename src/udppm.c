@@ -29,11 +29,15 @@ static void udpparam2hash(const struct hashtable *ht, void *index, uint8_t *hash
 }
 
 struct hashtable udp_table =  {udpparam2hash, udpparam2hash, sizeof(struct clientparam *), 8};
+int socks5_udp_build_hdr(unsigned char *buf, PROXYSOCKADDRTYPE *addr);
 
 void * udppmchild(struct clientparam* param) {
 	int authres;
+	int i;
+	int len = 0;
 
 	if(parsehostname((char *)param->srv->target, param, ntohs(param->srv->targetport))) { RETURN(201) }
+
 #ifndef NOIPV6
 	memcpy(&param->sinsl, *SAFAMILY(&param->req) == AF_INET6 ? (struct sockaddr *)&param->srv->extsa6 : (struct sockaddr *)&param->srv->extsa, SASIZE(&param->req));
 #else
@@ -53,13 +57,25 @@ void * udppmchild(struct clientparam* param) {
 	authres = (*param->srv->authfunc)(param);
 	if(authres) { RETURN(authres); }
 	if(!param->srv->singlepacket)hashadd(&udp_table, param, &param, MAX_COUNTER_TIME);
-	param->srv->so._sendto(param->sostate, param->remsock, (char *)param->srvbuf, param->srvinbuf, 0, (struct sockaddr *)&param->sinsr, SASIZE(&param->sinsr));
+	if(!param->srvbuf){
+	    if(!(param->srvbuf = myalloc(UDPBUFSIZE)))RETURN(11);
+	    param->srvbufsize = UDPBUFSIZE;
+	}
+	if(param->udp_nhops){
+	    for(i=1; i < param->udp_nhops; i++){
+		len+=socks5_udp_build_hdr(param->srvbuf+len, &param->udp_relay[i-1]);
+	    }
+	    len += socks5_udp_build_hdr(param->srvbuf+len, &param->req);
+	}
+	memcpy(param->srvbuf+len, param->srv->udpbuf, param->srv->udplen > UDPBUFSIZE - len?UDPBUFSIZE - len : param->srv->udplen);
+	len += param->srv->udplen > UDPBUFSIZE - len?UDPBUFSIZE - len : param->srv->udplen;
+	param->srv->so._sendto(param->sostate, param->remsock, (char *)param->srvbuf, len, 0, (struct sockaddr *)&param->sinsr, SASIZE(&param->sinsr));
 	_3proxy_sem_unlock(udpinit);
 	param->statscli64 += param->srvinbuf;
 	param->srvinbuf = 0;
 	param->nwrites++;
 	param->clisock = param->srv->srvsock;
-	param->udp_nhops = 1;
+	param->udp_nhops++;
 	param->waitserver64 = 0x7fffffffffffffff;
 	param->res = udpsockmap(param, conf.timeouts[STRING_L]);
 	_3proxy_sem_lock(udpinit);

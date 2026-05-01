@@ -85,7 +85,7 @@ void * sockschild(struct clientparam* param) {
 	 }
 	 if ((c = sockgetcharcli(param, conf.timeouts[SINGLEBYTE_L], 0)) != 5) {
 		RETURN(421);
-         } /* version */
+         }
  }
  if( (command = sockgetcharcli(param, conf.timeouts[SINGLEBYTE_S], 0)) < 1 || command > 3){command = 0; RETURN(407);} /* command */
  if(ver == 5){

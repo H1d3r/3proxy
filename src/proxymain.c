@@ -251,10 +251,6 @@ int MODULEMAINFUNC (int argc, char** argv){
  unsigned char buf[256];
  char *hostname=NULL;
  int opt = 1, isudp = 0, iscbl = 0, iscbc = 0;
-#ifndef NOUDPMAIN
- unsigned char *udpbuf = NULL;
- int udplen = 0;
-#endif
  unsigned char *cbc_string = NULL, *cbl_string = NULL;
  PROXYSOCKADDRTYPE cbsa;
  FILE *fp = NULL;
@@ -343,7 +339,6 @@ int MODULEMAINFUNC (int argc, char** argv){
 #ifndef NOUDPMAIN
  if(isudp) {
 	if(!udp_table.ihashtable)inithashtable(&udp_table, 64, 256, 65536);
-	if(!(udpbuf = myalloc(UDPBUFSIZE))) return 21;
  }
 #endif
  srv.service = defparam.service = childdef.service;
@@ -926,15 +921,26 @@ int MODULEMAINFUNC (int argc, char** argv){
 #ifndef NOUDPMAIN
 	else {
 		struct clientparam *toparam;
-		udplen = sockrecvfrom(NULL, srv.srvsock, (struct sockaddr *)&defparam.sincr, udpbuf, UDPBUFSIZE, 0);
-		if(udplen <= 0) continue;
+
+		srv.udplen = sockrecvfrom(NULL, srv.srvsock, (struct sockaddr *)&defparam.sincr, srv.udpbuf, UDPBUFSIZE, 0);
+		if(srv.udplen <= 0) continue;
 		_3proxy_sem_lock(udpinit);
 		if(hashresolv(&udp_table, &defparam, &toparam, NULL)) {
-			srv.so._sendto(toparam->sostate, toparam->remsock, (char *)udpbuf, udplen, 0, (struct sockaddr *)&toparam->sinsr, SASIZE(&toparam->sinsr));
-			_3proxy_sem_unlock(udpinit);
-			toparam->statscli64 += udplen;
-			toparam->nwrites++;
-			continue;
+		    int i, len=0;
+		
+		    if(toparam->udp_nhops - 1){
+			for(i=1; i < toparam->udp_nhops - 1; i++){
+			    len+=socks5_udp_build_hdr(srv.udpbuf2+len, &toparam->udp_relay[i-1]);
+    			}
+    			len += socks5_udp_build_hdr(srv.udpbuf2+len, &toparam->req);
+		    }
+		    memcpy(srv.udpbuf2+len, srv.udpbuf, srv.udplen > UDPBUFSIZE - len?UDPBUFSIZE - len : srv.udplen);
+		    len += srv.udplen > UDPBUFSIZE - len?UDPBUFSIZE - len : srv.udplen;
+		    srv.so._sendto(toparam->sostate, toparam->remsock, (char *)srv.udpbuf2, len, 0, (struct sockaddr *)&toparam->sinsr, SASIZE(&toparam->sinsr));
+		    toparam->statscli64 += srv.udplen;
+		    toparam->nwrites++;
+		    _3proxy_sem_unlock(udpinit);
+		    continue;
 		}
 	}
 #endif
@@ -963,18 +969,6 @@ int MODULEMAINFUNC (int argc, char** argv){
 		}
 #endif
 		continue;
-	}
-#endif
-#ifndef NOUDPMAIN
-	if(isudp) {
-		if(!(newparam->srvbuf = myalloc(UDPBUFSIZE))){
-		    freeparam(newparam);
-		    _3proxy_sem_unlock(udpinit);
-		    continue;
-		}
-		newparam->srvbufsize = UDPBUFSIZE;
-		newparam->srvinbuf = udplen;
-		memcpy(newparam->srvbuf, udpbuf, udplen);
 	}
 #endif
 	newparam->prev = newparam->next = NULL;
@@ -1047,9 +1041,6 @@ int MODULEMAINFUNC (int argc, char** argv){
  if(cbc_string)myfree(cbc_string);
  if(cbl_string)myfree(cbl_string);
  if(fp) fclose(fp);
-#ifndef NOUDPMAIN
- myfree(udpbuf);
-#endif
 
  return 0;
 }

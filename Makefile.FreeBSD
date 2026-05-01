@@ -10,10 +10,10 @@ CRYPT_PREFIX ?= $(PREFIX)
 MANDIR ?= /usr/share/man
 CC ?= cc
 
-CFLAGS := -c -fno-strict-aliasing -DNOODBC  -DFD_SETSIZE=4096 -DWITH_POLL -DWITH_UN  $(CFLAGS)
+CFLAGS := -c -O3 -fno-strict-aliasing -DNOODBC  -DFD_SETSIZE=4096 -DWITH_POLL -DWITH_UN  $(CFLAGS)
 COUT = -o 
 LN ?= ${CC}
-LDFLAGS += -pthread -fno-strict-aliasing 
+LDFLAGS += -g -flto -pthread -fno-strict-aliasing 
 # -lpthreads may be reuiured on some platforms instead of -pthreads
 # -ldl or -lld may be required for some platforms
 DCFLAGS ?= -fPIC

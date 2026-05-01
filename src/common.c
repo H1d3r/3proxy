@@ -557,9 +557,10 @@ int doconnect(struct clientparam * param){
  if (*SAFAMILY(&param->sincl) == *SAFAMILY(&param->req) && !memcmp(SAADDR(&param->sincl), SAADDR(&param->req), SAADDRLEN(&param->req)) &&
 	*SAPORT(&param->sincl) == *SAPORT(&param->req)) return 519;
 
- if (param->operation == ADMIN || param->operation == DNSRESOLVE || param->operation == BIND || param->operation == UDPASSOC)
+ if (param->operation == ADMIN || (( param->operation == DNSRESOLVE || param->operation == BIND || param->operation == UDPASSOC) && !param->redirected))
 	return 0;
  if (param->remsock != INVALID_SOCKET){
+	if(param->operation == UDPASSOC) return 0;
 	size = sizeof(param->sinsr);
 	if(param->srv->so._getpeername(param->sostate, param->remsock, (struct sockaddr *)&param->sinsr, &size)==-1) {return (14);}
  }
@@ -632,7 +633,7 @@ int doconnect(struct clientparam * param){
 		return 12;
 	}
 	
-	if(param->operation >= 256 || (param->operation & CONNECT)){
+	if(param->operation >= 256 || (param->operation & CONNECT) || param->redirected){
 		if(connectwithpoll(param, param->remsock,(struct sockaddr *)&param->sinsr,SASIZE(&param->sinsr),conf.timeouts[CONNECT_TO])) {
 			return 13;
 		}
@@ -646,7 +647,6 @@ int doconnect(struct clientparam * param){
     action = handleconnectflt(param);
     if(action != PASS) return 19;
  }
-
  return 0;
 }
 

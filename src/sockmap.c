@@ -314,6 +314,11 @@ log(logbuf);
 			}
 			else {
 				FROMCLIENTPIPE = TOSERVER = 0;
+				if(errno && errno != EINTR && errno != EAGAIN) {
+					SERVERTERMREAD = 1;
+					SERVERTERMWRITE = 1;
+					HASERROR |= 2;
+				}
 			}
 		}
 		if(inserverpipe && !inserverbuf && FROMSERVERPIPE && TOCLIENT){
@@ -339,6 +344,11 @@ log(logbuf);
 			}
 			else {
 				FROMSERVERPIPE = TOCLIENT = 0;
+				if(errno && errno != EINTR && errno != EAGAIN) {
+					CLIENTTERMREAD = 1;
+					CLIENTTERMWRITE = 1;
+					HASERROR |= 1;
+				}
 			}
 		}
 		if(fromclient>inclientpipe && FROMCLIENT && TOCLIENTPIPE){
@@ -362,6 +372,11 @@ log(logbuf);
 				FROMCLIENT = TOCLIENTPIPE = 0;
 				if(res == 0 && !errno) {
 					CLIENTTERMREAD = 1;
+					continue;
+				}
+				if(errno && errno != EINTR && errno != EAGAIN) {
+					CLIENTTERMREAD = 1;
+					CLIENTTERMWRITE = 1;
 					continue;
 				}
 			}
@@ -399,6 +414,11 @@ log(logbuf);
 				FROMSERVER = TOSERVERPIPE = 0;
 				if(res == 0 && !errno) {
 					SERVERTERMREAD = 1;
+					continue;
+				}
+				if(errno && errno != EINTR && errno != EAGAIN) {
+					SERVERTERMREAD = 1;
+					SERVERTERMWRITE = 1;
 					continue;
 				}
 			}
@@ -499,11 +519,19 @@ log("done read from server to buf");
 			}
 		}
 	}
-	if (CLIENTTERMREAD && !inclientbuf && !SERVERTERMWRITE) {
+	if (CLIENTTERMREAD && !inclientbuf
+#ifdef WITHSPLICE
+		&& !inclientpipe
+#endif
+		&& !SERVERTERMWRITE) {
 		SERVERTERMWRITE = 1;
 		param->srv->so._shutdown(param->sostate, param->remsock, SHUT_WR);
 	}
-	if (SERVERTERMREAD && !inserverbuf && !CLIENTTERMWRITE) {
+	if (SERVERTERMREAD && !inserverbuf
+#ifdef WITHSPLICE
+		&& !inserverpipe
+#endif
+		&& !CLIENTTERMWRITE) {
 		CLIENTTERMWRITE = 1;
 		param->srv->so._shutdown(param->sostate, param->clisock, SHUT_WR);
 	}

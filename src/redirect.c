@@ -24,7 +24,6 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 	int len=0;
 	unsigned char * user, *pass;
 
-
 	user = redir->extuser;
 	pass = redir->extpass;
 	if (!param->srvbufsize){
@@ -135,9 +134,9 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 		 int atyp;
 		 int skip_port = 0;
 			buf[0] = 5;
-			buf[1] = 1;
-			buf[2] = user? 2 : 0;
-			if(socksend(param, param->remsock, buf, 3, conf.timeouts[CHAIN_TO]) != 3){
+			buf[1] = user? 1 : 0;
+			buf[2] = 2;
+			if(socksend(param, param->remsock, buf, user?3:2, conf.timeouts[CHAIN_TO]) < 2){
 				return 51;
 			}
 			param->statssrv64+=3;
@@ -172,9 +171,9 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 				}
 			}
 			buf[0] = 5;
-			buf[1] = (param->operation == UDPASSOC && redir->type != R_SOCKS5B) ? 3 : 1;
+			buf[1] = (param->operation == UDPASSOC) ? 3 : 1;
 			buf[2] = 0;
-			if (param->operation == UDPASSOC && redir->type != R_SOCKS5B) {
+			if (param->operation == UDPASSOC) {
 				buf[3] = 1;
 				memset(buf + 4, 0, 6);
 				len = 10;
@@ -219,7 +218,7 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 			    return 59;
 			case 3:
 			    if (sockgetlinebuf(param, SERVER, buf, 1, EOF, conf.timeouts[CHAIN_TO]) != 1) return 59;
-			    len = (unsigned char)buf[0];
+			    len = (unsigned char)buf[4];
 			    if (sockgetlinebuf(param, SERVER, buf, len + 2, EOF, conf.timeouts[CHAIN_TO]) != len + 2) return 59;
 			    break;
 			case 4:
@@ -233,15 +232,17 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 				PROXYSOCKADDRTYPE *relay = &param->udp_relay[param->udp_nhops];
 				memset(relay, 0, sizeof(*relay));
 				if (atyp == 1) {
-					((struct sockaddr_in *)relay)->sin_family = AF_INET;
-					memcpy(&((struct sockaddr_in *)relay)->sin_addr, buf, 4);
-					memcpy(&((struct sockaddr_in *)relay)->sin_port, buf + 4, 2);
-					if (param->udp_nhops == 0) param->sinsr = *relay;
+					*SAFAMILY(relay) = AF_INET;
+					memcpy(SAADDR(relay), buf, 4);
+					memcpy(SAPORT(relay), buf + 4, 2);
+					if (param->udp_nhops == 0) {
+					    param->sinsr = *relay;
+					}
 					param->udp_nhops++;
 				} else if (atyp == 4) {
-					((struct sockaddr_in6 *)relay)->sin6_family = AF_INET6;
-					memcpy(&((struct sockaddr_in6 *)relay)->sin6_addr, buf, 16);
-					memcpy(&((struct sockaddr_in6 *)relay)->sin6_port, buf + 16, 2);
+					*SAFAMILY(relay) = AF_INET6;
+					memcpy(SAADDR(relay), buf, 16);
+					memcpy(SAPORT(relay), buf + 16, 2);
 					if (param->udp_nhops == 0) param->sinsr = *relay;
 					param->udp_nhops++;
 				}
@@ -265,9 +266,9 @@ int handleredirect(struct clientparam * param, struct ace * acentry){
 	struct chain * cur;
 	struct chain * redir = NULL;
 	int r2;
+	int saved = 0;
 
-	if(param->remsock != INVALID_SOCKET) {
-		return 0;
+	if(param->remsock != INVALID_SOCKET && param->operation != UDPASSOC) {
 	}
 	if((SAISNULL(&param->req) || !*SAPORT(&param->req)) && param->operation != UDPASSOC) {
 		return 100;
@@ -352,7 +353,13 @@ int handleredirect(struct clientparam * param, struct ace * acentry){
 			else {
 				param->sinsr = cur->addr;
 			}
-
+			if(param->operation == UDPASSOC){
+			    SOCKET s;
+			    s = param->remsock;
+			    param->remsock = INVALID_SOCKET;
+			    param->ctrlsocksrv = s;
+			    saved = 1;
+			}
 			if((res = alwaysauth(param))){
 				return (res >= 10)? res : 60+res;
 			}
@@ -397,5 +404,15 @@ int handleredirect(struct clientparam * param, struct ace * acentry){
 	}
 
 	if(!connected || !redir) return 0;
-	return clientnegotiate(redir, param, (struct sockaddr *)&param->req, param->hostname);
+	res =  clientnegotiate(redir, param, (struct sockaddr *)&param->req, param->hostname);
+	if(saved){
+	    SOCKET s;
+
+	    s = param->ctrlsocksrv;
+	    param->ctrlsocksrv = param->remsock;
+	    param->remsock = s;
+	    param->operation = UDPASSOC;
+	}
+	return res;
+
 }
