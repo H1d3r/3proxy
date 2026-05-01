@@ -499,6 +499,14 @@ log("done read from server to buf");
 			}
 		}
 	}
+	if (CLIENTTERMREAD && !inclientbuf && !SERVERTERMWRITE) {
+		SERVERTERMWRITE = 1;
+		param->srv->so._shutdown(param->sostate, param->remsock, SHUT_WR);
+	}
+	if (SERVERTERMREAD && !inserverbuf && !CLIENTTERMWRITE) {
+		CLIENTTERMWRITE = 1;
+		param->srv->so._shutdown(param->sostate, param->clisock, SHUT_WR);
+	}
 	for(after = 0, cli_events=0, srv_events=0; after < 2; after ++){
 		fdsc = 0;
 		
@@ -558,6 +566,9 @@ log("ready to write to client");
 						if(fds[fdsc].events & POLLOUT) CLIENTTERMWRITE = 1;
 					}
 				}
+			} else if(fds[fdsc].revents & (POLLERR|POLLNVAL|POLLHUP)) {
+				CLIENTTERMREAD = 1;
+				CLIENTTERMWRITE = 1;
 			}
 			fdsc++;
 
@@ -621,6 +632,9 @@ log("server terminated connection");
 						if(fds[fdsc].events & POLLOUT) SERVERTERMWRITE = 1;
 					}
 				}
+			} else if(fds[fdsc].revents & (POLLERR|POLLNVAL|POLLHUP)) {
+				SERVERTERMREAD = 1;
+				SERVERTERMWRITE = 1;
 			}
 			fdsc++;
 //		}
