@@ -52,7 +52,7 @@ int sockmap(struct clientparam * param, int timeo, int usesplice){
  int HASERROR=0;
  int CLIENTTERMREAD = 0, CLIENTTERMWRITE = 0, SERVERTERMREAD = 0, SERVERTERMWRITE = 0;
  int after = 0;
- struct pollfd fds[6];
+ struct pollfd fds[8];
  struct pollfd *fdsp = fds;
  int fdsc = 0;
  int sleeptime = 0;
@@ -212,7 +212,7 @@ log("send to server from buf");
 			param->clioffset = param->cliinbuf = 0;
 			if(fromclient) TOCLIENTBUF = 1;
 		}
-		sasize = sizeof(param->sinsr);
+		sasize = SASIZE(&param->sinsr);
 		res = param->srv->so._sendto(param->sostate, param->remsock, (char *)param->clibuf + param->clioffset, (int)MIN(inclientbuf, fromclient), 0, (struct sockaddr*)&param->sinsr, sasize);
 		if(res <= 0) {
 			TOSERVER = 0;
@@ -258,7 +258,7 @@ log("send to client from buf");
 			param->srvinbuf = param->srvoffset = 0;
 			continue;
 		}
-		sasize = sizeof(param->sincr);
+		sasize = SASIZE(&param->sincr);
 		res = param->srv->so._sendto(param->sostate, param->clisock, (char *)param->srvbuf + param->srvoffset, (int)MIN(inserverbuf,fromserver), 0, (struct sockaddr*)&param->sincr, sasize);
 		if(res <= 0) {
 			TOCLIENT = 0;
@@ -706,6 +706,24 @@ log("ready reading from server pipe");
 			}
 		}
 #endif
+		if(param->ctrlsock != INVALID_SOCKET) {
+			if(!after) {
+				fds[fdsc].fd = param->ctrlsock;
+				fds[fdsc].events = POLLIN;
+			} else if(fds[fdsc].revents) {
+				CLIENTTERMREAD = CLIENTTERMWRITE = SERVERTERMREAD = SERVERTERMWRITE = 1;
+			}
+			fdsc++;
+		}
+		if(param->ctrlsocksrv != INVALID_SOCKET) {
+			if(!after) {
+				fds[fdsc].fd = param->ctrlsocksrv;
+				fds[fdsc].events = POLLIN;
+			} else if(fds[fdsc].revents) {
+				CLIENTTERMREAD = CLIENTTERMWRITE = SERVERTERMREAD = SERVERTERMWRITE = 1;
+			}
+			fdsc++;
+		}
 		if(!after){
 			if(!fdsc) RETURN(90);
 

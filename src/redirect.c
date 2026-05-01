@@ -132,6 +132,8 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 		case R_SOCKS5B:
 		{
 		 int inbuf = 0;
+		 int atyp;
+		 int skip_port = 0;
 			buf[0] = 5;
 			buf[1] = 1;
 			buf[2] = user? 2 : 0;
@@ -170,9 +172,14 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 				}
 			}
 			buf[0] = 5;
-			buf[1] = 1;
+			buf[1] = (param->operation == UDPASSOC && redir->type != R_SOCKS5B) ? 3 : 1;
 			buf[2] = 0;
-			if(redir->type == R_SOCKS5P && hostname) {
+			if (param->operation == UDPASSOC && redir->type != R_SOCKS5B) {
+				buf[3] = 1;
+				memset(buf + 4, 0, 6);
+				len = 10;
+				skip_port = 1;
+			} else if(redir->type == R_SOCKS5P && hostname) {
 				buf[3] = 3;
 				len = (int)strlen((char *)hostname);
 				if(len > 255) len = 255;
@@ -186,8 +193,10 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 				memcpy(buf+len, SAADDR(addr), SAADDRLEN(addr));
 				len += SAADDRLEN(addr);
 			}
-			memcpy(buf+len, SAPORT(addr), 2);
-			len += 2;
+			if (!skip_port) {
+				memcpy(buf+len, SAPORT(addr), 2);
+				len += 2;
+			}
 			if(socksend(param, param->remsock, buf, len, conf.timeouts[CHAIN_TO]) != len){
 				return 51;
 			}
@@ -202,6 +211,7 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 			if(buf[1] != 0) {
 				return 60 + (buf[1] % 10);
 			}
+			atyp = buf[3];
 			switch (buf[3]) {
 			case 1:
 			    if (redir->type == R_SOCKS5B ||  sockgetlinebuf(param, SERVER, buf, 6, EOF, conf.timeouts[CHAIN_TO]) == 6)
@@ -218,6 +228,21 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 			    return 59;
 			default:
 			    return 58;
+			}
+			if (param->operation == UDPASSOC && (redir->type == R_SOCKS5 || redir->type == R_SOCKS5P) && param->udp_nhops < 3) {
+				PROXYSOCKADDRTYPE *relay = &param->udp_relay[param->udp_nhops];
+				memset(relay, 0, sizeof(*relay));
+				if (atyp == 1) {
+					((struct sockaddr_in *)relay)->sin_family = AF_INET;
+					memcpy(&((struct sockaddr_in *)relay)->sin_addr, buf, 4);
+					memcpy(&((struct sockaddr_in *)relay)->sin_port, buf + 4, 2);
+					param->udp_nhops++;
+				} else if (atyp == 4) {
+					((struct sockaddr_in6 *)relay)->sin6_family = AF_INET6;
+					memcpy(&((struct sockaddr_in6 *)relay)->sin6_addr, buf, 16);
+					memcpy(&((struct sockaddr_in6 *)relay)->sin6_port, buf + 16, 2);
+					param->udp_nhops++;
+				}
 			}
 			return 0;
 		}

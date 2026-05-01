@@ -53,14 +53,15 @@ void * udppmchild(struct clientparam* param) {
 	authres = (*param->srv->authfunc)(param);
 	if(authres) { RETURN(authres); }
 	if(!param->srv->singlepacket)hashadd(&udp_table, param, &param, MAX_COUNTER_TIME);
-	socksendto(param, param->remsock, (struct sockaddr *)&param->sinsr, param->srvbuf, param->srvinbuf, 0);
+	param->srv->so._sendto(param->sostate, param->remsock, (char *)param->srvbuf, param->srvinbuf, 0, (struct sockaddr *)&param->sinsr, SASIZE(&param->sinsr));
 	_3proxy_sem_unlock(udpinit);
 	param->statscli64 += param->srvinbuf;
 	param->srvinbuf = 0;
 	param->nwrites++;
 	param->clisock = param->srv->srvsock;
+	param->udp_nhops = 1;
 	param->waitserver64 = 0x7fffffffffffffff;
-	param->res = mapsocket(param, conf.timeouts[STRING_L]);
+	param->res = udpsockmap(param, conf.timeouts[STRING_L]);
 	_3proxy_sem_lock(udpinit);
 	if(!param->srv->singlepacket)hashdelete(&udp_table, param);
 

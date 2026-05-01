@@ -930,7 +930,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 		if(udplen <= 0) continue;
 		_3proxy_sem_lock(udpinit);
 		if(hashresolv(&udp_table, &defparam, &toparam, NULL)) {
-			socksendto(toparam, toparam->remsock, (struct sockaddr *)&toparam->sinsr, udpbuf, udplen, 0);
+			srv.so._sendto(toparam->sostate, toparam->remsock, (char *)udpbuf, udplen, 0, (struct sockaddr *)&toparam->sinsr, SASIZE(&toparam->sinsr));
 			_3proxy_sem_unlock(udpinit);
 			toparam->statscli64 += udplen;
 			toparam->nwrites++;
