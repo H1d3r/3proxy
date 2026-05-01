@@ -51,6 +51,8 @@
 #include <process.h>
 #define SASIZETYPE int
 #define SHUT_RDWR SD_BOTH
+#define SHUT_WR SD_SEND
+#define SHUT_RD SD_RECEIVE
 #else
 #ifndef FD_SETSIZE
 #define FD_SETSIZE 4096
