@@ -527,7 +527,6 @@ struct srvparam {
 	int backlog;
 	int paused, version;
 	int singlepacket;
-	int usentlm;
 	int needuser;
 	int silent;
 	int transparent;

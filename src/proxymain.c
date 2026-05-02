@@ -451,9 +451,6 @@ int MODULEMAINFUNC (int argc, char** argv){
 		 case 'b':
 			srv.bufsize = atoi(argv[i]+2);
 			break;
-		 case 'n':
-			srv.usentlm = atoi(argv[i]+2);
-			break;
 #ifdef STDMAIN
 #ifndef _WIN32
 		 case 'I':
@@ -1064,7 +1061,6 @@ void srvinit(struct srvparam * srv, struct clientparam *param){
  srv->noforce = conf.noforce;
  srv->logformat = conf.logformat? (unsigned char *)mystrdup((char *)conf.logformat) : NULL;
  srv->authfunc = conf.authfunc;
- srv->usentlm = 0;
  srv->maxchild = conf.maxchild;
  srv->backlog = conf.backlog;
  srv->stacksize = conf.stacksize;

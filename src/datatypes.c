@@ -553,10 +553,6 @@ static void * ef_server_singlepacket(struct node * node){
 	return &((struct srvparam *)node->value) -> singlepacket;
 }
 
-static void * ef_server_usentlm(struct node * node){
-	return &((struct srvparam *)node->value) -> usentlm;
-}
-
 static void * ef_server_starttime(struct node * node){
 	return &((struct srvparam *)node->value) -> time_start;
 }
@@ -728,20 +724,19 @@ static struct property prop_server[] = {
 	{prop_server + 5, "auth", ef_server_auth, TYPE_STRING, "service authentication type"},
 	{prop_server + 6, "acl", ef_server_acl, TYPE_ACE, "access control list"},
 	{prop_server + 7, "singlepacket", ef_server_singlepacket, TYPE_INTEGER, "is single packet redirection"},
-	{prop_server + 8, "usentlm", ef_server_usentlm, TYPE_INTEGER, "allow NTLM authentication"},
-	{prop_server + 9, "log", ef_server_log, TYPE_STRING, "type of logging"},
-	{prop_server + 10, "logtarget", ef_server_logtarget, TYPE_STRING, "log target options"},
-	{prop_server + 11, "logformat", ef_server_logformat, TYPE_STRING, "logging format string"},
-	{prop_server + 12, "nonprintable", ef_server_nonprintable, TYPE_STRING, "non printable characters"},
-	{prop_server + 13, "replacement", ef_server_replacement, TYPE_CHAR, "replacement character"},
-	{prop_server + 14, "childcount", ef_server_childcount, TYPE_INTEGER, "number of servers connected"},
-	{prop_server + 15, "intsa", ef_server_intsa, TYPE_SA, "ip address of internal interface"},
-	{prop_server + 16, "extsa", ef_server_extsa, TYPE_SA, "ip address of external interface"},
+	{prop_server + 8, "log", ef_server_log, TYPE_STRING, "type of logging"},
+	{prop_server + 9, "logtarget", ef_server_logtarget, TYPE_STRING, "log target options"},
+	{prop_server + 10, "logformat", ef_server_logformat, TYPE_STRING, "logging format string"},
+	{prop_server + 11, "nonprintable", ef_server_nonprintable, TYPE_STRING, "non printable characters"},
+	{prop_server + 12, "replacement", ef_server_replacement, TYPE_CHAR, "replacement character"},
+	{prop_server + 13, "childcount", ef_server_childcount, TYPE_INTEGER, "number of servers connected"},
+	{prop_server + 14, "intsa", ef_server_intsa, TYPE_SA, "ip address of internal interface"},
+	{prop_server + 15, "extsa", ef_server_extsa, TYPE_SA, "ip address of external interface"},
 #ifndef NOIPV6
-	{prop_server + 17, "extsa6", ef_server_extsa6, TYPE_SA, "ipv6 address of external interface"},
-	{prop_server + 18, "child", ef_server_child, TYPE_CLIENT, "connected clients"},
-#else
+	{prop_server + 16, "extsa6", ef_server_extsa6, TYPE_SA, "ipv6 address of external interface"},
 	{prop_server + 17, "child", ef_server_child, TYPE_CLIENT, "connected clients"},
+#else
+	{prop_server + 16, "child", ef_server_child, TYPE_CLIENT, "connected clients"},
 #endif
 	{NULL, "next", ef_server_next, TYPE_SERVER, "next"}
 };

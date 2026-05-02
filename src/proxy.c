@@ -1103,7 +1103,7 @@ CLEANRET:
 		socksend(param, param->clisock, (unsigned char *)proxy_stringtable[11], (int)strlen(proxy_stringtable[11]), conf.timeouts[STRING_S]);
 	}
 	else if(param->res < 10) {
-		socksend(param, param->clisock, (unsigned char *)proxy_stringtable[param->srv->usentlm?12:7], (int)strlen(proxy_stringtable[param->srv->usentlm?12:7]), conf.timeouts[STRING_S]);
+		socksend(param, param->clisock, (unsigned char *)proxy_stringtable[7], (int)strlen(proxy_stringtable[7]), conf.timeouts[STRING_S]);
 	}
 	else if(param->res == 999) {
 		socksend(param, param->clisock, (unsigned char *)proxy_stringtable[4], (int)strlen(proxy_stringtable[4]), conf.timeouts[STRING_S]);
