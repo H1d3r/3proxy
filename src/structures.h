@@ -558,6 +558,10 @@ struct srvparam {
 	char * ibindtodevice;
 	char * obindtodevice;
 #endif
+#ifdef __linux__
+	char * inetns;
+	char * onetns;
+#endif
 	struct auth *authenticate;
 	struct pollfd * srvfds;
 	struct ace *acl;

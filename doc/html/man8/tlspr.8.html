@@ -60,11 +60,11 @@ plugin).</p>
        cellspacing="0" cellpadding="0">
 <tr valign="top" align="left">
 <td width="6%"></td>
-<td width="4%">
+<td width="3%">
 
 
 <p style="margin-top: 1em"><b>-I</b></p></td>
-<td width="5%"></td>
+<td width="6%"></td>
 <td width="85%">
 
 
@@ -72,11 +72,11 @@ plugin).</p>
 only.</p> </td></tr>
 <tr valign="top" align="left">
 <td width="6%"></td>
-<td width="4%">
+<td width="3%">
 
 
 <p style="margin-top: 1em"><b>-d</b></p></td>
-<td width="5%"></td>
+<td width="6%"></td>
 <td width="85%">
 
 
@@ -84,11 +84,11 @@ only.</p> </td></tr>
 console and run in the background.</p></td></tr>
 <tr valign="top" align="left">
 <td width="6%"></td>
-<td width="4%">
+<td width="3%">
 
 
 <p style="margin-top: 1em"><b>-t</b></p></td>
-<td width="5%"></td>
+<td width="6%"></td>
 <td width="85%">
 
 
@@ -96,11 +96,11 @@ console and run in the background.</p></td></tr>
 start/stop/accept error records.</p></td></tr>
 <tr valign="top" align="left">
 <td width="6%"></td>
-<td width="4%">
+<td width="3%">
 
 
 <p style="margin-top: 1em"><b>-u</b></p></td>
-<td width="5%"></td>
+<td width="6%"></td>
 <td width="85%">
 
 
@@ -108,11 +108,11 @@ start/stop/accept error records.</p></td></tr>
 authentication</p> </td></tr>
 <tr valign="top" align="left">
 <td width="6%"></td>
-<td width="4%">
+<td width="3%">
 
 
 <p style="margin-top: 1em"><b>-e</b></p></td>
-<td width="5%"></td>
+<td width="6%"></td>
 <td width="85%">
 
 
@@ -120,23 +120,45 @@ authentication</p> </td></tr>
 the interface the proxy should initiate connections from. By
 default, the system will decide which address to use in
 accordance with the routing table.</p></td></tr>
+</table>
+
+<p style="margin-left:6%;"><b>-ni</b><i>PATH</i></p>
+
+<p style="margin-left:15%;">(Linux only) Switch to the
+network namespace identified by <i>PATH</i> before opening
+the listening socket. The current namespace is saved and
+restored immediately after binding, so outgoing connections
+run in the original namespace unless <b>-ne</b> is also
+given.</p>
+
+<p style="margin-left:6%;"><b>-ne</b><i>PATH</i></p>
+
+<p style="margin-left:15%;">(Linux only) Switch to the
+network namespace identified by <i>PATH</i> after the
+listening socket has been bound (and after restoring from
+<b>-ni</b> if applicable). Both options accept any namespace
+file path (e.g. <i>/var/run/netns/myns</i> or
+<i>/proc/PID/ns/net</i>) and require
+<b>CAP_SYS_ADMIN</b>.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
 <tr valign="top" align="left">
 <td width="6%"></td>
 <td width="4%">
 
 
-<p style="margin-top: 1em"><b>-i</b></p></td>
+<p><b>-i</b></p></td>
 <td width="5%"></td>
 <td width="85%">
 
 
-<p style="margin-top: 1em">Internal address. IP address the
-proxy accepts connections to. By default, connections to any
-interface are accepted. It&acute;s usually unsafe. Unix
-domain sockets can be specified with
-<i>-iunix:/path/to/socket</i> syntax (e.g.,
--iunix:/var/run/tlspr.sock). On Linux, abstract sockets use
-<i>-iunix:@socketname</i> syntax.</p></td></tr>
+<p>Internal address. IP address the proxy accepts
+connections to. By default, connections to any interface are
+accepted. It&acute;s usually unsafe. Unix domain sockets can
+be specified with <i>-iunix:/path/to/socket</i> syntax
+(e.g., -iunix:/var/run/tlspr.sock). On Linux, abstract
+sockets use <i>-iunix:@socketname</i> syntax.</p></td></tr>
 <tr valign="top" align="left">
 <td width="6%"></td>
 <td width="4%">

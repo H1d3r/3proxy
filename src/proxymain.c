@@ -7,6 +7,9 @@
 */
 
 #include "proxy.h"
+#ifdef __linux__
+#include <sched.h>
+#endif
 
 #define param ((struct clientparam *) p)
 #ifdef _WIN32
@@ -209,6 +212,10 @@ static void freesrvstrings(struct srvparam *srv, unsigned char *cbc_string, unsi
 	if(srv->ibindtodevice) myfree(srv->ibindtodevice);
 	if(srv->obindtodevice) myfree(srv->obindtodevice);
 #endif
+#ifdef __linux__
+	if(srv->inetns) myfree(srv->inetns);
+	if(srv->onetns) myfree(srv->onetns);
+#endif
 }
 
 #ifndef MODULEMAINFUNC
@@ -256,6 +263,9 @@ int MODULEMAINFUNC (int argc, char** argv){
  FILE *fp = NULL;
  struct linger lg;
  int nlog = 5000;
+#ifdef __linux__
+ int saved_nsfd = -1;
+#endif
  char loghelp[] =
 #ifdef STDMAIN
 #ifndef _WIN32
@@ -438,6 +448,12 @@ int MODULEMAINFUNC (int argc, char** argv){
 			else if(argv[i][3] == 'i') getip46(46, (unsigned char *)argv[i]+3, (struct sockaddr *)&srv.intNat);
 			else getip46(46, (unsigned char *)argv[i]+2, (struct sockaddr *)&srv.extNat);
 			break;
+#ifdef __linux__
+		 case 'n':
+			if(argv[i][2] == 'i') { if(srv.inetns) myfree(srv.inetns); srv.inetns = mystrdup(argv[i] + 3); }
+			else if(argv[i][2] == 'e') { if(srv.onetns) myfree(srv.onetns); srv.onetns = mystrdup(argv[i] + 3); }
+			break;
+#endif
 		 case 'p':
 			*SAPORT(&srv.intsa) = htons(atoi(argv[i]+2));
 			break;
@@ -655,6 +671,33 @@ int MODULEMAINFUNC (int argc, char** argv){
 
 
 
+#ifdef __linux__
+ if(srv.inetns) {
+	saved_nsfd = open("/proc/self/ns/net", O_RDONLY);
+	if(saved_nsfd == -1) {
+		dolog(&defparam, (unsigned char *)"failed to open /proc/self/ns/net");
+		freesrvstrings(&srv, cbc_string, cbl_string);
+		return -13;
+	}
+	{
+		int nsfd = open(srv.inetns, O_RDONLY);
+		if(nsfd == -1) {
+			dolog(&defparam, (unsigned char *)"failed to open inetns");
+			close(saved_nsfd);
+			freesrvstrings(&srv, cbc_string, cbl_string);
+			return -13;
+		}
+		if(setns(nsfd, CLONE_NEWNET)) {
+			dolog(&defparam, (unsigned char *)"failed to setns inetns");
+			close(nsfd);
+			close(saved_nsfd);
+			freesrvstrings(&srv, cbc_string, cbl_string);
+			return -13;
+		}
+		close(nsfd);
+	}
+ }
+#endif
  if (!iscbc) {
 	if(srv.srvsock == INVALID_SOCKET){
 		if(!isudp){
@@ -750,6 +793,33 @@ int MODULEMAINFUNC (int argc, char** argv){
 		dolog(&defparam, buf);
 	}
  }
+#ifdef __linux__
+ if(saved_nsfd != -1) {
+	if(setns(saved_nsfd, CLONE_NEWNET)) {
+		dolog(&defparam, (unsigned char *)"failed to restore netns");
+		close(saved_nsfd);
+		freesrvstrings(&srv, cbc_string, cbl_string);
+		return -14;
+	}
+	close(saved_nsfd);
+	saved_nsfd = -1;
+ }
+ if(srv.onetns) {
+	int nsfd = open(srv.onetns, O_RDONLY);
+	if(nsfd == -1) {
+		dolog(&defparam, (unsigned char *)"failed to open onetns");
+		freesrvstrings(&srv, cbc_string, cbl_string);
+		return -14;
+	}
+	if(setns(nsfd, CLONE_NEWNET)) {
+		dolog(&defparam, (unsigned char *)"failed to setns onetns");
+		close(nsfd);
+		freesrvstrings(&srv, cbc_string, cbl_string);
+		return -14;
+	}
+	close(nsfd);
+ }
+#endif
  if(iscbl){
 	parsehost(srv.family, cbl_string, (struct sockaddr *)&cbsa);
 	if((srv.cbsock=srv.so._socket(srv.so.state, SASOCK(&cbsa), SOCK_STREAM, IPPROTO_TCP))==INVALID_SOCKET) {
@@ -1165,6 +1235,10 @@ void srvfree(struct srvparam * srv){
 #if defined  SO_BINDTODEVICE || defined IP_BOUND_IF
  if(srv->ibindtodevice) myfree(srv->ibindtodevice);
  if(srv->obindtodevice) myfree(srv->obindtodevice);
+#endif
+#ifdef __linux__
+ if(srv->inetns) myfree(srv->inetns);
+ if(srv->onetns) myfree(srv->onetns);
 #endif
  if(srv->so.freefunc) srv->so.freefunc(srv->so.state);
 }

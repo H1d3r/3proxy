@@ -122,6 +122,64 @@ UDP portmapper
 .B -p\fINUMBER\fR
 change default server port to NUMBER
 .br
+.B -6
+Only resolve IPv6 addresses. IPv4 addresses are packed in IPv6 in IPV6_V6ONLY compatible way.
+.br
+.B -4
+Only resolve IPv4 addresses
+.br
+.B -46
+Prefer IPv4. Resolve IPv6 addresses if IPv4 address is not resolvable
+.br
+.B -64
+Prefer IPv6. Resolve IPv4 addresses if IPv6 address is not resolvable
+.br
+.B -e
+External address. IP address of the interface the proxy should initiate connections
+from. External IP must be specified if you need incoming connections.
+By default the system will decide which address to use in accordance
+with the routing table.
+.br
+.B -i
+Internal address. IP address the proxy accepts connections to.
+By default, connections to any interface are accepted.
+Unix domain sockets can be specified with
+.I -iunix:/path/to/socket
+syntax. On Linux, abstract sockets use
+.I -iunix:@socketname
+syntax. 
+.br
+.B -Di\fIINTERFACE\fB, -De\fIINTERFACE\fR
+bind internal (\fB-Di\fR) / external (\fB-De\fR) interface to given INTERFACE (e.g. eth0) if \fBSO_BINDTODEVICE\fR is supported by the system. You may need to run as root or have \fBCAP_NET_RAW\fR capability in order to bind to an interface, depending on the system, so this option may require root privileges and can be incompatible with some configuration commands like \fBchroot\fR and \fBsetuid\fR (and \fBdaemon\fR if setcap is used).
+.br
+.B -ni\fIPATH\fB, -ne\fIPATH\fR
+(Linux only) Switch to the network namespace identified by the filesystem path \fIPATH\fR (e.g. \fI/var/run/netns/myns\fR or \fI/proc/PID/ns/net\fR) for the listening socket (\fB-ni\fR) or for outgoing connections (\fB-ne\fR).
+With \fB-ni\fR the current namespace is saved before opening the listening socket and restored immediately after binding, so that the rest of the process (outgoing connections, child threads) runs in the original namespace unless \fB-ne\fR is also given.
+With \fB-ne\fR the process switches to the specified namespace after the listening socket is bound (and after restoring from \fB-ni\fR if applicable).
+Requires \fBCAP_SYS_ADMIN\fR (or \fBCAP_NET_ADMIN\fR on recent kernels) and is incompatible with \fBchroot\fR/\fBsetuid\fR/\fBdaemon\fR if privileges are dropped before the switch takes effect.
+.br
+.B -Ne
+(for socks) External NAT address (between 3proxy and destination server) to report to client for CONNECT and BIND. By default external address is reported. It's only useful in the case of IP-IP NAT (will not work for PAT).
+.br
+.B -Ni
+(for socks) Internal NAT address (between client and 3proxy) to report to client for UDPASSOC. By default internal address is reported. It's only useful in the case of IP-IP NAT (will not work for PAT).
+.br
+.B -R\fIHOST\fB:\fIport\fR
+listen on given local HOST:port for incoming connections instead of making remote outgoing connection. Can be used with another 3proxy service running -r option for connect back functionality. Most commonly used with tcppm. HOST can be given as IP or hostname, useful in case of dynamic DNS.
+.br
+.B -r\fIHOST\fB:\fIport\fR
+connect to given remote HOST:port instead of listening local connection on -p or default port. Can be used with another 3proxy service running -R option for connect back functionality. Most commonly used with proxy or socks. HOST can be given as IP or hostname, useful in case of dynamic DNS.
+.br
+.B -oc\fIOPTIONS\fB, -os\fIOPTIONS\fB, -ol\fIOPTIONS\fB, -or\fIOPTIONS\fB, -oR\fIOPTIONS\fR
+options for proxy-to-client (\fB-oc\fR), proxy-to-server (\fB-os\fR), proxy listening (\fB-ol\fR), connect back client (\fB-or\fR), connect back listening (\fB-oR\fR) sockets.
+Options like TCP_CORK, TCP_NODELAY, TCP_DEFER_ACCEPT, TCP_QUICKACK, TCP_TIMESTAMPS, USE_TCP_FASTOPEN, SO_REUSEADDR, SO_REUSEPORT, SO_PORT_SCALABILITY, SO_REUSE_UNICASTPORT, SO_KEEPALIVE, SO_DONTROUTE may be supported depending on OS.
+.br
+.B -H
+(for all services) Expect HAProxy PROXY protocol v1 header on incoming connection.
+This allows the proxy to receive real client IP address from HAProxy or other
+load balancer that supports the PROXY protocol. The header must be sent before
+any protocol-specific data.
+.br
 .B -g(\fIGRACE_TRAFF\fB,\fIGRACE_NUM\fB,\fIGRACE_DELAY\fR)
 delay GRACE_DELAY milliseconds before polling if average polling size is below GRACE_TRAFF bytes and GRACE_NUM read operations in a single direction are detected within 1 second. Useful to minimize polling
 .B -s
@@ -146,58 +204,6 @@ Never ask for username/password
 .br
 .B -a2
 (for proxy) generate Via: and X-Forwarded-For: instead of Forwarded:
-.br
-.B -6
-Only resolve IPv6 addresses. IPv4 addresses are packed in IPv6 in IPV6_V6ONLY compatible way.
-.br
-.B -4
-Only resolve IPv4 addresses
-.br
-.B -46
-Resolve IPv6 addresses if IPv4 address is not resolvable
-.br
-.B -64
-Resolve IPv4 addresses if IPv6 address is not resolvable
-.br
-.B -R\fIHOST\fB:\fIport\fR
-listen on given local HOST:port for incoming connections instead of making remote outgoing connection. Can be used with another 3proxy service running -r option for connect back functionality. Most commonly used with tcppm. HOST can be given as IP or hostname, useful in case of dynamic DNS.
-.br
-.B -r\fIHOST\fB:\fIport\fR
-connect to given remote HOST:port instead of listening local connection on -p or default port. Can be used with another 3proxy service running -R option for connect back functionality. Most commonly used with proxy or socks. HOST can be given as IP or hostname, useful in case of dynamic DNS.
-.br
-.B -oc\fIOPTIONS\fB, -os\fIOPTIONS\fB, -ol\fIOPTIONS\fB, -or\fIOPTIONS\fB, -oR\fIOPTIONS\fR
-options for proxy-to-client (\fB-oc\fR), proxy-to-server (\fB-os\fR), proxy listening (\fB-ol\fR), connect back client (\fB-or\fR), connect back listening (\fB-oR\fR) sockets.
-Options like TCP_CORK, TCP_NODELAY, TCP_DEFER_ACCEPT, TCP_QUICKACK, TCP_TIMESTAMPS, USE_TCP_FASTOPEN, SO_REUSEADDR, SO_REUSEPORT, SO_PORT_SCALABILITY, SO_REUSE_UNICASTPORT, SO_KEEPALIVE, SO_DONTROUTE may be supported depending on OS.
-.br
-.B -Di\fIINTERFACE\fB, -De\fIINTERFACE\fR
-bind internal (\fB-Di\fR) / external (\fB-De\fR) interface to given INTERFACE (e.g. eth0) if \fBSO_BINDTODEVICE\fR is supported by the system. You may need to run as root or have \fBCAP_NET_RAW\fR capability in order to bind to an interface, depending on the system, so this option may require root privileges and can be incompatible with some configuration commands like \fBchroot\fR and \fBsetuid\fR (and \fBdaemon\fR if setcap is used).
-.br
-.B -e
-External address. IP address of the interface the proxy should initiate connections
-from. External IP must be specified if you need incoming connections.
-By default the system will decide which address to use in accordance
-with the routing table.
-.br
-.B -i
-Internal address. IP address the proxy accepts connections to.
-By default, connections to any interface are accepted.
-Unix domain sockets can be specified with
-.I -iunix:/path/to/socket
-syntax. On Linux, abstract sockets use
-.I -iunix:@socketname
-syntax. 
-.br
-.B -Ne
-(for socks) External NAT address (between 3proxy and destination server) to report to client for CONNECT and BIND. By default external address is reported. It's only useful in the case of IP-IP NAT (will not work for PAT).
-.br
-.B -Ni
-(for socks) Internal NAT address (between client and 3proxy) to report to client for UDPASSOC. By default internal address is reported. It's only useful in the case of IP-IP NAT (will not work for PAT).
-.br
-.B -H
-(for all services) Expect HAProxy PROXY protocol v1 header on incoming connection.
-This allows the proxy to receive real client IP address from HAProxy or other
-load balancer that supports the PROXY protocol. The header must be sent before
-any protocol-specific data.
 .br
  Also, all options mentioned for 
 .BR proxy (8)

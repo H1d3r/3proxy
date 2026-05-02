@@ -104,19 +104,42 @@ start/stop/accept error records.</p></td></tr>
 the interface the proxy should initiate datagrams from. By
 default, the system will decide which address to use in
 accordance with the routing table.</p></td></tr>
+</table>
+
+<p style="margin-left:6%;"><b>-ni</b><i>PATH</i></p>
+
+<p style="margin-left:15%;">(Linux only) Switch to the
+network namespace identified by <i>PATH</i> before opening
+the listening socket. The current namespace is saved and
+restored immediately after binding, so outgoing connections
+run in the original namespace unless <b>-ne</b> is also
+given.</p>
+
+<p style="margin-left:6%;"><b>-ne</b><i>PATH</i></p>
+
+<p style="margin-left:15%;">(Linux only) Switch to the
+network namespace identified by <i>PATH</i> after the
+listening socket has been bound (and after restoring from
+<b>-ni</b> if applicable). Both options accept any namespace
+file path (e.g. <i>/var/run/netns/myns</i> or
+<i>/proc/PID/ns/net</i>) and require
+<b>CAP_SYS_ADMIN</b>.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
 <tr valign="top" align="left">
 <td width="6%"></td>
 <td width="3%">
 
 
-<p style="margin-top: 1em"><b>-i</b></p></td>
+<p><b>-i</b></p></td>
 <td width="6%"></td>
 <td width="85%">
 
 
-<p style="margin-top: 1em">Internal address. IP address the
-proxy accepts datagrams to. By default, connections to any
-interface are accepted. It&acute;s usually unsafe.</p></td></tr>
+<p>Internal address. IP address the proxy accepts datagrams
+to. By default, connections to any interface are accepted.
+It&acute;s usually unsafe.</p></td></tr>
 <tr valign="top" align="left">
 <td width="6%"></td>
 <td width="3%">

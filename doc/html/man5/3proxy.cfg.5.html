@@ -121,34 +121,57 @@ udppm</b> UDP portmapper</p>
 <p style="margin-left:6%; margin-top: 1em">Options: <b><br>
 -p</b><i>NUMBER</i> change default server port to NUMBER
 <b><br>
-
--g(</b><i>GRACE_TRAFF</i><b>,</b><i>GRACE_NUM</i><b>,</b><i>GRACE_DELAY</i>)
-delay GRACE_DELAY milliseconds before polling if average
-polling size is below GRACE_TRAFF bytes and GRACE_NUM read
-operations in a single direction are detected within 1
-second. Useful to minimize polling <b>-s</b> <br>
-(for admin) secure, allow only secure operations, currently
-only traffic counters view without ability to reset. <br>
-(for dnspr) simple, do not use resolver and 3proxy cache,
-always use external DNS server. <br>
-(for udppm) singlepacket, expect only one packet from both
-client and server <b><br>
--u</b> Never ask for username/password <b><br>
--u2</b> (for socks) require username/password in
-authentication methods <b><br>
--a</b> (for proxy) anonymous proxy (no information about
-client reported) <b><br>
--a1</b> (for proxy) anonymous proxy (random client
-information reported) <b><br>
--a2</b> (for proxy) generate Via: and X-Forwarded-For:
-instead of Forwarded: <b><br>
 -6</b> Only resolve IPv6 addresses. IPv4 addresses are
 packed in IPv6 in IPV6_V6ONLY compatible way. <b><br>
 -4</b> Only resolve IPv4 addresses <b><br>
--46</b> Resolve IPv6 addresses if IPv4 address is not
-resolvable <b><br>
--64</b> Resolve IPv4 addresses if IPv6 address is not
-resolvable <b><br>
+-46</b> Prefer IPv4. Resolve IPv6 addresses if IPv4 address
+is not resolvable <b><br>
+-64</b> Prefer IPv6. Resolve IPv4 addresses if IPv6 address
+is not resolvable <b><br>
+-e</b> External address. IP address of the interface the
+proxy should initiate connections from. External IP must be
+specified if you need incoming connections. By default the
+system will decide which address to use in accordance with
+the routing table. <b><br>
+-i</b> Internal address. IP address the proxy accepts
+connections to. By default, connections to any interface are
+accepted. Unix domain sockets can be specified with
+<i>-iunix:/path/to/socket</i> syntax. On Linux, abstract
+sockets use <i>-iunix:@socketname</i> syntax. <b><br>
+-Di</b><i>INTERFACE</i><b>, -De</b><i>INTERFACE</i> bind
+internal (<b>-Di</b>) / external (<b>-De</b>) interface to
+given INTERFACE (e.g. eth0) if <b>SO_BINDTODEVICE</b> is
+supported by the system. You may need to run as root or have
+<b>CAP_NET_RAW</b> capability in order to bind to an
+interface, depending on the system, so this option may
+require root privileges and can be incompatible with some
+configuration commands like <b>chroot</b> and <b>setuid</b>
+(and <b>daemon</b> if setcap is used). <b><br>
+-ni</b><i>PATH</i><b>, -ne</b><i>PATH</i> (Linux only)
+Switch to the network namespace identified by the filesystem
+path <i>PATH</i> (e.g. <i>/var/run/netns/myns</i> or
+<i>/proc/PID/ns/net</i>) for the listening socket
+(<b>-ni</b>) or for outgoing connections (<b>-ne</b>). With
+<b>-ni</b> the current namespace is saved before opening the
+listening socket and restored immediately after binding, so
+that the rest of the process (outgoing connections, child
+threads) runs in the original namespace unless <b>-ne</b> is
+also given. With <b>-ne</b> the process switches to the
+specified namespace after the listening socket is bound (and
+after restoring from <b>-ni</b> if applicable). Requires
+<b>CAP_SYS_ADMIN</b> (or <b>CAP_NET_ADMIN</b> on recent
+kernels) and is incompatible with
+<b>chroot</b>/<b>setuid</b>/<b>daemon</b> if privileges are
+dropped before the switch takes effect. <b><br>
+-Ne</b> (for socks) External NAT address (between 3proxy and
+destination server) to report to client for CONNECT and
+BIND. By default external address is reported. It&rsquo;s
+only useful in the case of IP-IP NAT (will not work for
+PAT). <b><br>
+-Ni</b> (for socks) Internal NAT address (between client and
+3proxy) to report to client for UDPASSOC. By default
+internal address is reported. It&rsquo;s only useful in the
+case of IP-IP NAT (will not work for PAT). <b><br>
 -R</b><i>HOST</i><b>:</b><i>port</i> listen on given local
 HOST:port for incoming connections instead of making remote
 outgoing connection. Can be used with another 3proxy service
@@ -171,39 +194,32 @@ TCP_NODELAY, TCP_DEFER_ACCEPT, TCP_QUICKACK, TCP_TIMESTAMPS,
 USE_TCP_FASTOPEN, SO_REUSEADDR, SO_REUSEPORT,
 SO_PORT_SCALABILITY, SO_REUSE_UNICASTPORT, SO_KEEPALIVE,
 SO_DONTROUTE may be supported depending on OS. <b><br>
--Di</b><i>INTERFACE</i><b>, -De</b><i>INTERFACE</i> bind
-internal (<b>-Di</b>) / external (<b>-De</b>) interface to
-given INTERFACE (e.g. eth0) if <b>SO_BINDTODEVICE</b> is
-supported by the system. You may need to run as root or have
-<b>CAP_NET_RAW</b> capability in order to bind to an
-interface, depending on the system, so this option may
-require root privileges and can be incompatible with some
-configuration commands like <b>chroot</b> and <b>setuid</b>
-(and <b>daemon</b> if setcap is used). <b><br>
--e</b> External address. IP address of the interface the
-proxy should initiate connections from. External IP must be
-specified if you need incoming connections. By default the
-system will decide which address to use in accordance with
-the routing table. <b><br>
--i</b> Internal address. IP address the proxy accepts
-connections to. By default, connections to any interface are
-accepted. Unix domain sockets can be specified with
-<i>-iunix:/path/to/socket</i> syntax. On Linux, abstract
-sockets use <i>-iunix:@socketname</i> syntax. <b><br>
--Ne</b> (for socks) External NAT address (between 3proxy and
-destination server) to report to client for CONNECT and
-BIND. By default external address is reported. It&rsquo;s
-only useful in the case of IP-IP NAT (will not work for
-PAT). <b><br>
--Ni</b> (for socks) Internal NAT address (between client and
-3proxy) to report to client for UDPASSOC. By default
-internal address is reported. It&rsquo;s only useful in the
-case of IP-IP NAT (will not work for PAT). <b><br>
 -H</b> (for all services) Expect HAProxy PROXY protocol v1
 header on incoming connection. This allows the proxy to
 receive real client IP address from HAProxy or other load
 balancer that supports the PROXY protocol. The header must
-be sent before any protocol-specific data. <br>
+be sent before any protocol-specific data. <b><br>
+
+-g(</b><i>GRACE_TRAFF</i><b>,</b><i>GRACE_NUM</i><b>,</b><i>GRACE_DELAY</i>)
+delay GRACE_DELAY milliseconds before polling if average
+polling size is below GRACE_TRAFF bytes and GRACE_NUM read
+operations in a single direction are detected within 1
+second. Useful to minimize polling <b>-s</b> <br>
+(for admin) secure, allow only secure operations, currently
+only traffic counters view without ability to reset. <br>
+(for dnspr) simple, do not use resolver and 3proxy cache,
+always use external DNS server. <br>
+(for udppm) singlepacket, expect only one packet from both
+client and server <b><br>
+-u</b> Never ask for username/password <b><br>
+-u2</b> (for socks) require username/password in
+authentication methods <b><br>
+-a</b> (for proxy) anonymous proxy (no information about
+client reported) <b><br>
+-a1</b> (for proxy) anonymous proxy (random client
+information reported) <b><br>
+-a2</b> (for proxy) generate Via: and X-Forwarded-For:
+instead of Forwarded: <br>
 Also, all options mentioned for <b>proxy</b>(8)
 <b>socks</b>(8) <b>pop3p</b>(8) <b>tcppm</b>(8)
 <b>udppm</b>(8) <b>ftppr</b>(8) <br>

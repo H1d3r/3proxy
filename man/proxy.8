@@ -31,6 +31,24 @@ from.
 By default, the system will decide which address to use in accordance
 with the routing table.
 .TP
+.B \-ni\fIPATH\fR
+(Linux only) Switch to the network namespace identified by
+.I PATH
+before opening the listening socket. The current namespace is saved and restored
+immediately after binding, so outgoing connections run in the original namespace
+unless
+.B \-ne
+is also given.
+.TP
+.B \-ne\fIPATH\fR
+(Linux only) Switch to the network namespace identified by
+.I PATH
+after the listening socket has been bound (and after restoring from
+.B \-ni
+if applicable). Both options accept any namespace file path
+(e.g.\& \fI/var/run/netns/myns\fR or \fI/proc/PID/ns/net\fR)
+and require \fBCAP_SYS_ADMIN\fR.
+.TP
 .B -i
 Internal address. IP address the proxy accepts connections to.
 By default, connections to any interface are accepted. It\'s usually unsafe.

@@ -22,9 +22,6 @@ base64$(OBJSUFFICS): base64.c
 ftp$(OBJSUFFICS): ftp.c proxy.h structures.h
 	$(CC) $(CFLAGS) ftp.c
 
-#$(COMPATLIBS): 
-#	$(CC) $(CFLAGS) strncasecmp.c
-
 sockgetchar$(OBJSUFFICS): sockgetchar.c proxy.h structures.h
 	$(CC) $(CFLAGS) sockgetchar.c
 
@@ -131,7 +128,7 @@ redirect$(OBJSUFFICS): redirect.c proxy.h structures.h
 hash$(OBJSUFFICS): hash.c proxy.h structures.h
 	$(CC) $(COUT)hash$(OBJSUFFICS) $(CFLAGS) hash.c
 
-hashtables$(OBJSUFFICS): hashtables.c proxy.h structures.h
+hashtables$(OBJSUFFICS): hashtables.c proxy.h structures.h blake2_compat.h
 	$(CC) $(COUT)hashtables$(OBJSUFFICS) $(CFLAGS) hashtables.c
 
 resolve$(OBJSUFFICS): resolve.c proxy.h structures.h
@@ -149,13 +146,13 @@ log$(OBJSUFFICS): log.c proxy.h structures.h
 datatypes$(OBJSUFFICS): datatypes.c proxy.h structures.h
 	$(CC) $(COUT)datatypes$(OBJSUFFICS) $(CFLAGS) datatypes.c
 
-3proxy_crypt$(OBJSUFFICS): 3proxy_crypt.c
+3proxy_crypt$(OBJSUFFICS): 3proxy_crypt.c blake2_compat.h
 	$(CC) $(COUT)3proxy_crypt$(OBJSUFFICS) $(CFLAGS) 3proxy_crypt.c
 
-3proxy_cryptmain$(OBJSUFFICS): 3proxy_crypt.c
+3proxy_cryptmain$(OBJSUFFICS): 3proxy_crypt.c blake2_compat.h
 	$(CC) $(COUT)3proxy_cryptmain$(OBJSUFFICS) $(CFLAGS) $(DEFINEOPTION)WITHMAIN 3proxy_crypt.c
 
-blake2$(OBJSUFFICS):  libs/blake2.h libs/blake2-impl.h libs/blake2b-ref.c
+blake2$(OBJSUFFICS):  libs/blake2b-ref.c
 	$(CC) $(COUT)blake2$(OBJSUFFICS) $(CFLAGS) libs/blake2b-ref.c
 
 $(BUILDDIR)$(CRYPT_PREFIX)crypt$(EXESUFFICS): blake2$(OBJSUFFICS) 3proxy_cryptmain$(OBJSUFFICS) base64$(OBJSUFFICS)
@@ -164,13 +161,13 @@ $(BUILDDIR)$(CRYPT_PREFIX)crypt$(EXESUFFICS): blake2$(OBJSUFFICS) 3proxy_cryptma
 stringtable$(OBJSUFFICS):  stringtable.c
 	$(CC) $(COUT)stringtable$(OBJSUFFICS) $(CFLAGS) stringtable.c
 
-ssllib$(OBJSUFFICS): ssllib.c
+ssllib$(OBJSUFFICS): ssllib.c structures.h proxy.h ssl.h
 	$(CC) $(COUT)ssllib$(OBJSUFFICS) $(CFLAGS) ssllib.c
 
-ssl$(OBJSUFFICS): ssl.c
+ssl$(OBJSUFFICS): ssl.c structures.h proxy.h ssl.h
 	$(CC) $(COUT)ssl$(OBJSUFFICS) $(CFLAGS) ssl.c
 
-pcre$(OBJSUFFICS): pcre.c
+pcre$(OBJSUFFICS): pcre.c structures.h
 	$(CC) $(COUT)pcre$(OBJSUFFICS) $(CFLAGS) $(DEFINEOPTION)WITH_PCRE pcre.c
 
 $(BUILDDIR)3proxy$(EXESUFFICS): 3proxy$(OBJSUFFICS) mainfunc$(OBJSUFFICS) srvproxy$(OBJSUFFICS) srvpop3p$(OBJSUFFICS) srvsmtpp$(OBJSUFFICS) srvftppr$(OBJSUFFICS) srvsocks$(OBJSUFFICS) srvtcppm$(OBJSUFFICS) srvtlspr$(OBJSUFFICS) srvauto$(OBJSUFFICS) srvudppm$(OBJSUFFICS) sockmap$(OBJSUFFICS) udpsockmap$(OBJSUFFICS) sockgetchar$(OBJSUFFICS) common$(OBJSUFFICS) auth$(OBJSUFFICS) acl$(OBJSUFFICS) limiter$(OBJSUFFICS) redirect$(OBJSUFFICS) authradius$(OBJSUFFICS) hash$(OBJSUFFICS) hashtables$(OBJSUFFICS) resolve$(OBJSUFFICS) sql$(OBJSUFFICS) conf$(OBJSUFFICS) log$(OBJSUFFICS) datatypes$(OBJSUFFICS) blake2$(OBJSUFFICS) 3proxy_crypt$(OBJSUFFICS) base64$(OBJSUFFICS) ftp$(OBJSUFFICS) stringtable$(OBJSUFFICS) srvwebadmin$(OBJSUFFICS) srvdnspr$(OBJSUFFICS) plugins$(OBJSUFFICS) $(SSL_OBJS) $(PCRE_OBJS) $(COMPATLIBS) $(VERSIONDEP)
