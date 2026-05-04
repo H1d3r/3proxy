@@ -517,11 +517,6 @@ struct srvparam {
 	AUTHFUNC authfunc;
 	PROXYFUNC pf;
 	SOCKET srvsock, cbsock;
-#ifndef NOUDPMAIN
-	unsigned char udpbuf[UDPBUFSIZE];
-	unsigned char udpbuf2[UDPBUFSIZE];
-	int udplen;
-#endif
 	int childcount;
 	int maxchild;
 	int backlog;
@@ -573,6 +568,11 @@ struct srvparam {
 	uint16_t targetport;
 	unsigned char replace;
 	time_t time_start;
+#ifndef NOUDPMAIN
+	unsigned char udpbuf[UDPBUFSIZE];
+	unsigned char udpbuf2[UDPBUFSIZE];
+	int udplen;
+#endif
 };
 
 struct clientparam {
