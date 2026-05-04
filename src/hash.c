@@ -6,9 +6,6 @@ struct hashentry {
         char value[4];
 };
 
-static uint32_t hashindex(unsigned tablesize, const uint8_t* hash){
-    return (*(unsigned *)hash) % tablesize;
-}
 
 
 void destroyhashtable(struct hashtable *ht){
@@ -32,6 +29,7 @@ void destroyhashtable(struct hashtable *ht){
     _3proxy_mutex_destroy(&ht->hash_mutex);
 }
 
+#define hashindex(ht, tablesize, hash) (murmurhash3(hash, ht->hash_size, ht->entropy) % tablesize)
 #define hvalue(ht,I) ((struct hashentry *)(ht->hashvalues + (I-1)*(sizeof(struct hashentry) + ht->recsize - 4)))
 #define hhash(ht,I) ((ht->hashhashvalues + (I-1)*(ht->hash_size)))
 
@@ -87,6 +85,7 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
     ht->poolsize = poolsize;
     ht->tablesize = tablesize;
     ht->growlimit = growlimit;
+    ht->entropy = myrand(ht, sizeof(struct hashtable));
     memset(ht->ihashtable, 0, ht->tablesize * sizeof(uint32_t));
     memset(ht->hashvalues, 0, ht->poolsize * (sizeof(struct hashentry) + ht->recsize - 4));
 
@@ -151,7 +150,7 @@ static void hashgrow(struct hashtable *ht){
                 uint32_t he = ht->ihashtable[j];
                 while (he) {
                     uint32_t next = hvalue(ht, he)->inext;
-                    unsigned idx = hashindex(newtablesize, hhash(ht, he));
+                    unsigned idx = hashindex(ht, newtablesize, hhash(ht, he));
                     hvalue(ht, he)->inext = newitable[idx];
                     newitable[idx] = he;
                     he = next;
@@ -180,7 +179,7 @@ void hashadd(struct hashtable *ht, void* name, void* value, time_t expires){
 
     ht->index2hash_add(ht, name, hash);
     _3proxy_mutex_lock(&ht->hash_mutex);
-    index = hashindex(ht->tablesize, hash);
+    index = hashindex(ht, ht->tablesize, hash);
 
     for(hep = ht->ihashtable + index; (he = *hep)!=0; ){
 	if(hvalue(ht,he)->expires < conf.time || !memcmp(hash, hhash(ht,he), ht->hash_size)) {
@@ -228,7 +227,7 @@ int hashresolv(struct hashtable *ht, void* name, void* value, uint32_t *ttl){
     }
     ht->index2hash_search(ht,name, hash);
     _3proxy_mutex_lock(&ht->hash_mutex);
-    index = hashindex(ht->tablesize, hash);
+    index = hashindex(ht, ht->tablesize, hash);
     for(hep = ht->ihashtable + index; (he = *hep)!=0; ){
 	if(hvalue(ht, he)->expires < conf.time) {
 	    (*hep) = hvalue(ht,he)->inext;
@@ -259,7 +258,7 @@ void hashdelete(struct hashtable *ht, void *name){
     }
     ht->index2hash_search(ht, name, hash);
     _3proxy_mutex_lock(&ht->hash_mutex);
-    index = hashindex(ht->tablesize, hash);
+    index = hashindex(ht, ht->tablesize, hash);
     for(hep = ht->ihashtable + index; (he = *hep) != 0; ){
 	if((hvalue(ht, he)->expires && hvalue(ht, he)->expires < conf.time) || !memcmp(hash, hhash(ht, he), ht->hash_size)) {
 	    (*hep) = hvalue(ht, he)->inext;

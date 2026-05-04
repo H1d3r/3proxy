@@ -505,6 +505,7 @@ struct hashtable {
 	time_t compacted;
 	uint32_t ihashhashempty;
 	uint32_t ihashempty;
+	uint32_t entropy;
 };
 
 struct srvparam {
