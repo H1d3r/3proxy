@@ -182,7 +182,7 @@ int
 #endif
 #endif
 
-#define MAX_HASH_SIZE (16)
+#define MAX_HASH_SIZE (64)
 #define UDPBUFSIZE 16384
 
 extern char* NULLADDR;
