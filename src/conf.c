@@ -163,14 +163,14 @@ int start_proxy_thread(struct child * chp){
 	_3proxy_sem_lock(conf.threadinit);
 #ifdef _WIN32
 #ifndef _WINCE
-	h = (HANDLE)_beginthreadex((LPSECURITY_ATTRIBUTES )NULL, 16384+conf.stacksize, (void *)startsrv, (void *) chp, (DWORD)0, &thread);
+	h = (HANDLE)_beginthreadex((LPSECURITY_ATTRIBUTES )NULL, 32768+conf.stacksize, (void *)startsrv, (void *) chp, (DWORD)0, &thread);
 #else
-	h = (HANDLE)CreateThread((LPSECURITY_ATTRIBUTES )NULL, 16384+conf.stacksize, (void *)startsrv, (void *) chp, (DWORD)0, &thread);
+	h = (HANDLE)CreateThread((LPSECURITY_ATTRIBUTES )NULL, 32768+conf.stacksize, (void *)startsrv, (void *) chp, (DWORD)0, &thread);
 #endif
 	if(h)CloseHandle(h);
 #else
 	pthread_attr_init(&pa);
-	pthread_attr_setstacksize(&pa,PTHREAD_STACK_MIN + (32768+conf.stacksize));
+	pthread_attr_setstacksize(&pa,PTHREAD_STACK_MIN + (65536+conf.stacksize));
 	pthread_attr_setdetachstate(&pa,PTHREAD_CREATE_DETACHED);
 	pthread_create(&thread, &pa, startsrv, (void *)chp);
 	pthread_attr_destroy(&pa);
