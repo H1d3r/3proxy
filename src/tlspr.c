@@ -111,7 +111,7 @@ int parsehello(int type, unsigned char *hello, unsigned len, char *sni, int * sn
 int tlstobufcli(struct clientparam *param){
     unsigned long  len, newlen;
     if(!param->clibuf){
-	if(!(param->clibuf = myalloc(SRVBUFSIZE))) return -1;
+	if(!(param->clibuf = malloc(SRVBUFSIZE))) return -1;
         param->clibufsize = SRVBUFSIZE;
 	param->clioffset = param->cliinbuf = 0;
     }
@@ -149,7 +149,7 @@ int tlstobufsrv(struct clientparam *param){
 	param->cliinbuf = param->clioffset = 0;
     }
     if(!param->srvbuf){
-        if(!(param->srvbuf = myalloc(SRVBUFSIZE))) return -1;
+        if(!(param->srvbuf = malloc(SRVBUFSIZE))) return -1;
 	param->srvbufsize = SRVBUFSIZE;
 	param->srvoffset = param->srvinbuf = 0;
     }
@@ -186,11 +186,11 @@ void * tlsprchild(struct clientparam* param) {
     res = parsehello(1, param->clibuf, (unsigned)res, sni, &snipos, &lv, proto);
     if(res > 0){
 	if(param->hostname){
-	    myfree(param->hostname);
+	    free(param->hostname);
 	    param->hostname = NULL;
 	}
 	else if (parsehostname(sni, param, param->srv->targetport? ntohs(param->srv->targetport):443)) RETURN (100);
-	if (!param->hostname)param->hostname = (unsigned char *)mystrdup(sni);
+	if (!param->hostname)param->hostname = (unsigned char *)strdup(sni);
 	if(param->srv->singlepacket && snipos && res > 1){
 	    int len;
 	    

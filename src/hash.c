@@ -11,15 +11,15 @@ struct hashentry {
 void destroyhashtable(struct hashtable *ht){
     _3proxy_mutex_lock(&ht->hash_mutex);
     if(ht->ihashtable){
-	myfree(ht->ihashtable);
+	free(ht->ihashtable);
 	ht->ihashtable = NULL;
     }
     if(ht->hashvalues){
-	myfree(ht->hashvalues);
+	free(ht->hashvalues);
 	ht->hashvalues = NULL;
     }
     if(ht->hashhashvalues){
-	myfree(ht->hashhashvalues);
+	free(ht->hashhashvalues);
 	ht->hashhashvalues = NULL;
     }
     ht->poolsize = 0;
@@ -53,15 +53,15 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
     if(ht->ihashtable){
         _3proxy_mutex_lock(&ht->hash_mutex);
 	if(ht->ihashtable){
-	    myfree(ht->ihashtable);
+	    free(ht->ihashtable);
 	    ht->ihashtable = NULL;
 	}
 	if(ht->hashvalues){
-	    myfree(ht->hashvalues);
+	    free(ht->hashvalues);
 	    ht->hashvalues = NULL;
 	}
 	if(ht->hashhashvalues){
-	    myfree(ht->hashhashvalues);
+	    free(ht->hashhashvalues);
 	    ht->hashhashvalues = NULL;
 	}
 	ht->poolsize = 0;
@@ -71,13 +71,13 @@ int inithashtable(struct hashtable *ht, unsigned tablesize, unsigned poolsize, u
 	_3proxy_mutex_init(&ht->hash_mutex);
         _3proxy_mutex_lock(&ht->hash_mutex);
     }
-    if(!(ht->ihashtable = myalloc(tablesize *  sizeof(uint32_t)))
-    || !(ht->hashvalues = myalloc(poolsize * (sizeof(struct hashentry) + ht->recsize - 4)))
-    || !(ht->hashhashvalues = myalloc(poolsize * ht->hash_size))
+    if(!(ht->ihashtable = malloc(tablesize *  sizeof(uint32_t)))
+    || !(ht->hashvalues = malloc(poolsize * (sizeof(struct hashentry) + ht->recsize - 4)))
+    || !(ht->hashhashvalues = malloc(poolsize * ht->hash_size))
     ){
-	myfree(ht->ihashtable);
+	free(ht->ihashtable);
 	ht->ihashtable = NULL;
-	myfree(ht->hashvalues);
+	free(ht->hashvalues);
 	ht->hashvalues = NULL;
 	_3proxy_mutex_unlock(&ht->hash_mutex);
 	return 3;
@@ -127,10 +127,10 @@ static void hashgrow(struct hashtable *ht){
     if(ht->ihashempty) return;
     if(ht->poolsize >= ht->growlimit) return;
     if(newsize > ht->growlimit) newsize = ht->growlimit;
-    newvalues = myrealloc(ht->hashvalues, newsize * (sizeof(struct hashentry) + ht->recsize - 4));
+    newvalues = realloc(ht->hashvalues, newsize * (sizeof(struct hashentry) + ht->recsize - 4));
     if(!newvalues) return;
     ht->hashvalues = newvalues;
-    newvalues = myrealloc(ht->hashhashvalues, newsize * ht->hash_size);
+    newvalues = realloc(ht->hashhashvalues, newsize * ht->hash_size);
     if(!newvalues) return;
     ht->hashhashvalues = newvalues;
     memset(ht->hashvalues + (ht->poolsize * (sizeof(struct hashentry) + ht->recsize - 4)), 0, (newsize - ht->poolsize) * (sizeof(struct hashentry) + ht->recsize - 4));
@@ -142,7 +142,7 @@ static void hashgrow(struct hashtable *ht){
     ht->poolsize = newsize;
     if (ht->poolsize / ht->tablesize > 10) {
         unsigned newtablesize = ht->poolsize / 3;
-        uint32_t *newitable = myalloc(newtablesize * sizeof(uint32_t));
+        uint32_t *newitable = malloc(newtablesize * sizeof(uint32_t));
         if (newitable) {
             unsigned j;
             memset(newitable, 0, newtablesize * sizeof(uint32_t));
@@ -156,7 +156,7 @@ static void hashgrow(struct hashtable *ht){
                     he = next;
                 }
             }
-            myfree(ht->ihashtable);
+            free(ht->ihashtable);
             ht->ihashtable = newitable;
             ht->tablesize = newtablesize;
         }

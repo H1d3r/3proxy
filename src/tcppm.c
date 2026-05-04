@@ -21,7 +21,7 @@ void * tcppmchild(struct clientparam* param) {
     if(!strncmp((char *)param->srv->target, "unix:", 5)){
 	make_un(param->srv->target + 5, (struct sockaddr_un *)&param->sinsr);
 	make_un(param->srv->target + 5, (struct sockaddr_un *)&param->req);
-	param->hostname = (unsigned char *)mystrdup((char *)param->srv->target);
+	param->hostname = (unsigned char *)strdup((char *)param->srv->target);
     } else
 #endif
     if(

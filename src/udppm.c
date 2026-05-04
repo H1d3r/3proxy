@@ -58,7 +58,7 @@ void * udppmchild(struct clientparam* param) {
 	if(authres) { RETURN(authres); }
 	if(!param->srv->singlepacket)hashadd(&udp_table, param, &param, MAX_COUNTER_TIME);
 	if(!param->srvbuf){
-	    if(!(param->srvbuf = myalloc(UDPBUFSIZE)))RETURN(11);
+	    if(!(param->srvbuf = malloc(UDPBUFSIZE)))RETURN(11);
 	    param->srvbufsize = UDPBUFSIZE;
 	}
 	if(param->udp_nhops){

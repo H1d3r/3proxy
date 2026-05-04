@@ -13,7 +13,7 @@ void * autochild(struct clientparam* param) {
     int len;
 
     if(!param->clibuf){
-	if(!(param->clibuf = myalloc(SRVBUFSIZE))) return 0;
+	if(!(param->clibuf = malloc(SRVBUFSIZE))) return 0;
 	param->clibufsize = SRVBUFSIZE;
 	param->clioffset = param->cliinbuf = 0;
     }

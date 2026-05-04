@@ -204,17 +204,17 @@ void setopts(SOCKET s, int opts){
 }
 
 static void freesrvstrings(struct srvparam *srv, unsigned char *cbc_string, unsigned char *cbl_string) {
-	if(cbc_string) myfree(cbc_string);
-	if(cbl_string) myfree(cbl_string);
-	if(srv->logtarget) myfree(srv->logtarget);
-	if(srv->logformat) myfree(srv->logformat);
+	if(cbc_string) free(cbc_string);
+	if(cbl_string) free(cbl_string);
+	if(srv->logtarget) free(srv->logtarget);
+	if(srv->logformat) free(srv->logformat);
 #if defined SO_BINDTODEVICE || defined IP_BOUND_IF
-	if(srv->ibindtodevice) myfree(srv->ibindtodevice);
-	if(srv->obindtodevice) myfree(srv->obindtodevice);
+	if(srv->ibindtodevice) free(srv->ibindtodevice);
+	if(srv->obindtodevice) free(srv->obindtodevice);
 #endif
 #ifdef __linux__
-	if(srv->inetns) myfree(srv->inetns);
-	if(srv->onetns) myfree(srv->onetns);
+	if(srv->inetns) free(srv->inetns);
+	if(srv->onetns) free(srv->onetns);
 #endif
 }
 
@@ -391,14 +391,14 @@ int MODULEMAINFUNC (int argc, char** argv){
 			break;
 #if defined SO_BINDTODEVICE || defined IP_BOUND_IF
 		 case 'D':
-			if(argv[i][2] == 'i') srv.ibindtodevice = mystrdup(argv[i] + 3);
-			else srv.obindtodevice = mystrdup(argv[i] + 3);
+			if(argv[i][2] == 'i') srv.ibindtodevice = strdup(argv[i] + 3);
+			else srv.obindtodevice = strdup(argv[i] + 3);
 			break;
 #endif
 		 case 'l':
 			srv.logfunc = logstdout;
-			if(srv.logtarget) myfree(srv.logtarget);
-			srv.logtarget = (unsigned char *)mystrdup(argv[i] + 2);
+			if(srv.logtarget) free(srv.logtarget);
+			srv.logtarget = (unsigned char *)strdup(argv[i] + 2);
 			if(argv[i][2]) {
 				if(argv[i][2]=='@'){
 
@@ -450,8 +450,8 @@ int MODULEMAINFUNC (int argc, char** argv){
 			break;
 #ifdef __linux__
 		 case 'n':
-			if(argv[i][2] == 'i') { if(srv.inetns) myfree(srv.inetns); srv.inetns = mystrdup(argv[i] + 3); }
-			else if(argv[i][2] == 'e') { if(srv.onetns) myfree(srv.onetns); srv.onetns = mystrdup(argv[i] + 3); }
+			if(argv[i][2] == 'i') { if(srv.inetns) free(srv.inetns); srv.inetns = strdup(argv[i] + 3); }
+			else if(argv[i][2] == 'e') { if(srv.onetns) free(srv.onetns); srv.onetns = strdup(argv[i] + 3); }
 			break;
 #endif
 		 case 'p':
@@ -479,8 +479,8 @@ int MODULEMAINFUNC (int argc, char** argv){
 #endif
 #endif
 		 case 'f':
-			if(srv.logformat)myfree(srv.logformat);
-			srv.logformat = (unsigned char *)mystrdup(argv[i] + 2);
+			if(srv.logformat)free(srv.logformat);
+			srv.logformat = (unsigned char *)strdup(argv[i] + 2);
 			break;
 		 case 't':
 			srv.silent = 1;
@@ -496,11 +496,11 @@ int MODULEMAINFUNC (int argc, char** argv){
 			if(isdigit(argv[i][2])) srv.requirecert = atoi(argv[i]+2);
 			break;
 		 case 'r':
-			cbc_string = (unsigned char *)mystrdup(argv[i] + 2);
+			cbc_string = (unsigned char *)strdup(argv[i] + 2);
 			iscbc = 1;
 			break;
 		 case 'R':
-			cbl_string = (unsigned char *)mystrdup(argv[i] + 2);
+			cbl_string = (unsigned char *)strdup(argv[i] + 2);
 			iscbl = 1;
 			break;
 		 case 'u':
@@ -621,7 +621,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 		);
 		return (1);
 	}
-	srv.target = (unsigned char *)mystrdup(argv[i+1]);
+	srv.target = (unsigned char *)strdup(argv[i+1]);
 #endif
 #ifndef STDMAIN
  }
@@ -638,7 +638,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 		srv.so._setsockopt(srv.so.state, 0, SOL_SOCKET, SO_OOBINLINE, (unsigned char *)&opt, sizeof(int));
 	}
 	defparam.clisock = 0;
-	if(! (newparam = myalloc (sizeof(defparam)))){
+	if(! (newparam = malloc (sizeof(defparam)))){
 		return 2;
 	};
 	*newparam = defparam;
@@ -1011,7 +1011,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 		}
 	}
 #endif
-	if(! (newparam = myalloc (sizeof(defparam)))){
+	if(! (newparam = malloc (sizeof(defparam)))){
 		if(!isudp) srv.so._closesocket(srv.so.state, new_sock);
 #ifndef NOUDPMAIN
 		else {
@@ -1024,7 +1024,7 @@ int MODULEMAINFUNC (int argc, char** argv){
 		continue;
 	};
 	*newparam = defparam;
-	if(defparam.hostname)newparam->hostname=(unsigned char *)mystrdup((char *)defparam.hostname);
+	if(defparam.hostname)newparam->hostname=(unsigned char *)strdup((char *)defparam.hostname);
 	clearstat(newparam);
 	if(!isudp) newparam->clisock = new_sock;
 #ifndef STDMAIN
@@ -1104,9 +1104,9 @@ int MODULEMAINFUNC (int argc, char** argv){
 #ifndef _WIN32
  pthread_attr_destroy(&pa);
 #endif
- if(defparam.hostname)myfree(defparam.hostname);
- if(cbc_string)myfree(cbc_string);
- if(cbl_string)myfree(cbl_string);
+ if(defparam.hostname)free(defparam.hostname);
+ if(cbc_string)free(cbc_string);
+ if(cbl_string)free(cbl_string);
  if(fp) fclose(fp);
 
  return 0;
@@ -1129,14 +1129,14 @@ void srvinit(struct srvparam * srv, struct clientparam *param){
  srv->paused = conf.paused;
  srv->logfunc = havelog?conf.logfunc:lognone;
  srv->noforce = conf.noforce;
- srv->logformat = conf.logformat? (unsigned char *)mystrdup((char *)conf.logformat) : NULL;
+ srv->logformat = conf.logformat? (unsigned char *)strdup((char *)conf.logformat) : NULL;
  srv->authfunc = conf.authfunc;
  srv->maxchild = conf.maxchild;
  srv->backlog = conf.backlog;
  srv->stacksize = conf.stacksize;
  srv->time_start = time(NULL);
  if(havelog && conf.logtarget){
-	 srv->logtarget = (unsigned char *)mystrdup((char *)conf.logtarget);
+	 srv->logtarget = (unsigned char *)strdup((char *)conf.logtarget);
  }
  srv->srvsock = INVALID_SOCKET;
  srv->logdumpsrv = conf.logdumpsrv;
@@ -1180,11 +1180,11 @@ void srvinit2(struct srvparam * srv, struct clientparam *param){
 		unsigned char* logformat = srv->logformat;
 
 		*s = 0;
-		srv->nonprintable = (unsigned char *)mystrdup((char *)srv->logformat + 1);
+		srv->nonprintable = (unsigned char *)strdup((char *)srv->logformat + 1);
 		srv->replace = s[1];
-		srv->logformat = (unsigned char *)mystrdup(s + 2);
+		srv->logformat = (unsigned char *)strdup(s + 2);
 		*s = '+';
-		myfree(logformat);
+		free(logformat);
 	}
  }
  memset(&param->sinsl, 0, sizeof(param->sinsl));
@@ -1221,24 +1221,24 @@ void srvfree(struct srvparam * srv){
 		 (*srv->filter[srv->nfilters].filter_close)(srv->filter[srv->nfilters].data);
 		}
 	}
-	myfree(srv->filter);
+	free(srv->filter);
  }
 
  if(srv->acl)freeacl(srv->acl);
  if(srv->authfuncs)freeauth(srv->authfuncs);
 #endif
  _3proxy_mutex_destroy(&srv->counter_mutex);
- if(srv->target) myfree(srv->target);
- if(srv->logtarget) myfree(srv->logtarget);
- if(srv->logformat) myfree(srv->logformat);
- if(srv->nonprintable) myfree(srv->nonprintable);
+ if(srv->target) free(srv->target);
+ if(srv->logtarget) free(srv->logtarget);
+ if(srv->logformat) free(srv->logformat);
+ if(srv->nonprintable) free(srv->nonprintable);
 #if defined  SO_BINDTODEVICE || defined IP_BOUND_IF
- if(srv->ibindtodevice) myfree(srv->ibindtodevice);
- if(srv->obindtodevice) myfree(srv->obindtodevice);
+ if(srv->ibindtodevice) free(srv->ibindtodevice);
+ if(srv->obindtodevice) free(srv->obindtodevice);
 #endif
 #ifdef __linux__
- if(srv->inetns) myfree(srv->inetns);
- if(srv->onetns) myfree(srv->onetns);
+ if(srv->inetns) free(srv->inetns);
+ if(srv->onetns) free(srv->onetns);
 #endif
  if(srv->so.freefunc) srv->so.freefunc(srv->so.state);
 }
@@ -1263,8 +1263,8 @@ void freeparam(struct clientparam * param) {
 		(param->srv->childcount)--;
 		_3proxy_mutex_unlock(&param->srv->counter_mutex);
 	}
-	if(param->clibuf) myfree(param->clibuf);
-	if(param->srvbuf) myfree(param->srvbuf);
+	if(param->clibuf) free(param->clibuf);
+	if(param->srvbuf) free(param->srvbuf);
 	if(param->srv) {
 		if(param->ctrlsocksrv != INVALID_SOCKET && param->ctrlsocksrv != param->remsock) {
 			param->srv->so._shutdown(param->sostate, param->ctrlsocksrv, SHUT_RDWR);
@@ -1283,30 +1283,30 @@ void freeparam(struct clientparam * param) {
 			param->srv->so._closesocket(param->sostate, param->clisock);
 		}
 	}
-	if(param->datfilterssrv) myfree(param->datfilterssrv);
+	if(param->datfilterssrv) free(param->datfilterssrv);
 #ifndef STDMAIN
-	if(param->reqfilters) myfree(param->reqfilters);
-	if(param->connectfilters) myfree(param->connectfilters);
-	if(param->afterauthfilters) myfree(param->afterauthfilters);
-	if(param->hdrfilterscli) myfree(param->hdrfilterscli);
-	if(param->hdrfilterssrv) myfree(param->hdrfilterssrv);
-	if(param->predatfilters) myfree(param->predatfilters);
-	if(param->datfilterscli) myfree(param->datfilterscli);
+	if(param->reqfilters) free(param->reqfilters);
+	if(param->connectfilters) free(param->connectfilters);
+	if(param->afterauthfilters) free(param->afterauthfilters);
+	if(param->hdrfilterscli) free(param->hdrfilterscli);
+	if(param->hdrfilterssrv) free(param->hdrfilterssrv);
+	if(param->predatfilters) free(param->predatfilters);
+	if(param->datfilterscli) free(param->datfilterscli);
 	if(param->filters){
 		if(param->nfilters)while(param->nfilters--){
 			if(param->filters[param->nfilters].filter->filter_clear)
 				(*param->filters[param->nfilters].filter->filter_clear)(param->filters[param->nfilters].data);
 		}
-		myfree(param->filters);
+		free(param->filters);
 	}
 	if(param->connlim) stopconnlims(param);
 #endif
-	if(param->hostname) myfree(param->hostname);
-	if(param->username) myfree(param->username);
-	if(param->password) myfree(param->password);
-	if(param->extusername) myfree(param->extusername);
-	if(param->extpassword) myfree(param->extpassword);
-	myfree(param);
+	if(param->hostname) free(param->hostname);
+	if(param->username) free(param->username);
+	if(param->password) free(param->password);
+	if(param->extusername) free(param->extusername);
+	if(param->extpassword) free(param->extpassword);
+	free(param);
 }
 
 FILTER_ACTION handleconnectflt(struct clientparam *cparam){
@@ -1327,7 +1327,7 @@ FILTER_ACTION handleconnectflt(struct clientparam *cparam){
 static void * itcopy (void * from, size_t size){
 	void * ret;
 	if(!from) return NULL;
-	ret = myalloc(size);
+	ret = malloc(size);
 	if(ret)	memcpy(ret, from, size);
 	return ret;
 }
@@ -1398,7 +1398,7 @@ struct ace * copyacl (struct ace *ac){
 		if(!ac->users) goto ERRORUSERS;
 		for(ul = ac->users; ul; ul = ul->next){
 			if(ul->user) {
-				ul->user = (unsigned char*)mystrdup((char *)ul->user);
+				ul->user = (unsigned char*)strdup((char *)ul->user);
 				if(!ul->user) {
 					ul->next = NULL;
 					goto ERRORUSERS;
@@ -1415,7 +1415,7 @@ struct ace * copyacl (struct ace *ac){
 		if(!ac->dstnames) goto ERRORDSTNAMES;
 		for(hst = ac->dstnames; hst; hst = hst->next){
 			if(hst->name) {
-				hst->name = (unsigned char*)mystrdup((char *)hst->name);
+				hst->name = (unsigned char*)strdup((char *)hst->name);
 				if(!hst->name) {
 					hst->next = NULL;
 					goto ERRORDSTNAMES;
@@ -1432,7 +1432,7 @@ struct ace * copyacl (struct ace *ac){
 		if(!ac->chains) goto ERRORCHAINS;
 		for(ch = ac->chains; ch; ch = ch->next){
 			if(ch->extuser){
-				ch->extuser = (unsigned char*)mystrdup((char *)ch->extuser);
+				ch->extuser = (unsigned char*)strdup((char *)ch->extuser);
 				if(!ch->extuser){
 					ch->extpass = NULL;
 					ch->exthost = NULL;
@@ -1441,7 +1441,7 @@ struct ace * copyacl (struct ace *ac){
 				}
 			}
 			if(ch->extpass){
-				ch->extpass = (unsigned char*)mystrdup((char *)ch->extpass);
+				ch->extpass = (unsigned char*)strdup((char *)ch->extpass);
 				if(!ch->extpass){
 					ch->exthost = NULL;
 					ch->next = NULL;
@@ -1449,7 +1449,7 @@ struct ace * copyacl (struct ace *ac){
 				}
 			}
 			if(ch->exthost){
-				ch->exthost = (unsigned char*)mystrdup((char *)ch->exthost);
+				ch->exthost = (unsigned char*)strdup((char *)ch->exthost);
 				if(!ch->exthost){
 					ch->next = NULL;
 					goto ERRORCHAINS;
@@ -1494,7 +1494,7 @@ void copyfilter (struct filter *filter, struct srvparam *srv){
 
  if(!filter) return;
  for(srv->filter = filter; srv->filter; srv->filter = srv->filter->next) nfilters++;
- srv->filter = myalloc(sizeof(struct filter) * nfilters);
+ srv->filter = malloc(sizeof(struct filter) * nfilters);
  if(!srv->filter) return;
 
  for(; filter; filter = filter->next){
@@ -1524,15 +1524,15 @@ FILTER_ACTION makefilters (struct srvparam *srv, struct clientparam *param){
 
 	if(!srv->nfilters) return PASS;
 
-	if(!(param->filters = myalloc(sizeof(struct filterp) * srv->nfilters)) ||
-	   (srv->nreqfilters && !(param->reqfilters = myalloc(sizeof(struct filterp *) * srv->nreqfilters))) ||
-	   (srv->nconnectfilters && !(param->connectfilters = myalloc(sizeof(struct filterp *) * srv->nconnectfilters))) ||
-	   (srv->nafterauthfilters && !(param->afterauthfilters = myalloc(sizeof(struct filterp *) * srv->nafterauthfilters))) ||
-	   (srv->nhdrfilterssrv && !(param->hdrfilterssrv = myalloc(sizeof(struct filterp *) * srv->nhdrfilterssrv))) ||
-	   (srv->nhdrfilterscli && !(param->hdrfilterscli = myalloc(sizeof(struct filterp *) * srv->nhdrfilterscli))) ||
-	   (srv->npredatfilters && !(param->predatfilters = myalloc(sizeof(struct filterp *) * srv->npredatfilters))) ||
-	   (srv->ndatfilterssrv && !(param->datfilterssrv = myalloc(sizeof(struct filterp *) * srv->ndatfilterssrv))) ||
-	   (srv->ndatfilterscli && !(param->datfilterscli = myalloc(sizeof(struct filterp *) * srv->ndatfilterscli)))
+	if(!(param->filters = malloc(sizeof(struct filterp) * srv->nfilters)) ||
+	   (srv->nreqfilters && !(param->reqfilters = malloc(sizeof(struct filterp *) * srv->nreqfilters))) ||
+	   (srv->nconnectfilters && !(param->connectfilters = malloc(sizeof(struct filterp *) * srv->nconnectfilters))) ||
+	   (srv->nafterauthfilters && !(param->afterauthfilters = malloc(sizeof(struct filterp *) * srv->nafterauthfilters))) ||
+	   (srv->nhdrfilterssrv && !(param->hdrfilterssrv = malloc(sizeof(struct filterp *) * srv->nhdrfilterssrv))) ||
+	   (srv->nhdrfilterscli && !(param->hdrfilterscli = malloc(sizeof(struct filterp *) * srv->nhdrfilterscli))) ||
+	   (srv->npredatfilters && !(param->predatfilters = malloc(sizeof(struct filterp *) * srv->npredatfilters))) ||
+	   (srv->ndatfilterssrv && !(param->datfilterssrv = malloc(sizeof(struct filterp *) * srv->ndatfilterssrv))) ||
+	   (srv->ndatfilterscli && !(param->datfilterscli = malloc(sizeof(struct filterp *) * srv->ndatfilterscli)))
 	  ){
 		param->res = 21;
 		return REJECT;
@@ -1558,7 +1558,7 @@ FILTER_ACTION makefilters (struct srvparam *srv, struct clientparam *param){
 }
 
 void * itfree(void *data, void * retval){
-	myfree(data);
+	free(data);
 	return retval;
 }
 
@@ -1579,15 +1579,15 @@ void freeacl(struct ace *ac){
 		for(pl = ac->ports; pl; pl = (struct portlist *)itfree(pl, pl->next));
 		for(pel = ac->periods; pel; pel = (struct period *)itfree(pel, pel->next));
 		for(ul = ac->users; ul; ul = (struct userlist *)itfree(ul, ul->next)){
-			if(ul->user)myfree(ul->user);
+			if(ul->user)free(ul->user);
 		}
 		for(hst = ac->dstnames; hst; hst = (struct hostname *)itfree(hst, hst->next)){
-			if(hst->name)myfree(hst->name);
+			if(hst->name)free(hst->name);
 		}
 		for(ch = ac->chains; ch; ch = (struct chain *) itfree(ch, ch->next)){
-			if(ch->extuser) myfree(ch->extuser);
-			if(ch->extpass) myfree(ch->extpass);
-			if(ch->exthost) myfree(ch->exthost);
+			if(ch->extuser) free(ch->extuser);
+			if(ch->extpass) free(ch->extpass);
+			if(ch->exthost) free(ch->exthost);
 		}
 	}
 }

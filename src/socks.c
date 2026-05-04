@@ -49,7 +49,7 @@ void * sockschild(struct clientparam* param) {
 
  param->service = S_SOCKS;
 
- if(!(buf = myalloc(BUFSIZE))) {RETURN(21);}
+ if(!(buf = malloc(BUFSIZE))) {RETURN(21);}
  memset(buf, 0, BUFSIZE);
  if ((ver = sockgetcharcli(param, conf.timeouts[SINGLEBYTE_L], 0)) != 5 && ver != 4) {
 	RETURN(401);
@@ -74,11 +74,11 @@ void * sockschild(struct clientparam* param) {
 		if ((i = sockgetcharcli(param, conf.timeouts[SINGLEBYTE_S], 0)) == EOF) {RETURN(451);}
 		if (i && (unsigned)(res = sockgetlinebuf(param, CLIENT, buf, i, 0, conf.timeouts[STRING_S])) != i){RETURN(441);};
 		buf[i] = 0;
-		if(!param->username)param->username = (unsigned char *)mystrdup((char *)buf);
+		if(!param->username)param->username = (unsigned char *)strdup((char *)buf);
 		if ((i = sockgetcharcli(param, conf.timeouts[SINGLEBYTE_S], 0)) == EOF) {RETURN(445);}
 		if (i && (unsigned)(res = sockgetlinebuf(param, CLIENT, buf, i, 0, conf.timeouts[STRING_S])) != i){RETURN(441);};
 		buf[i] = 0;
-		if(!param->password)param->password = (unsigned char *)mystrdup((char *)buf);
+		if(!param->password)param->password = (unsigned char *)strdup((char *)buf);
 		buf[0] = 1;
 		buf[1] = 0;
 		if(socksend(param, param->clisock, buf, 2, conf.timeouts[STRING_S])!=2){RETURN(481);}
@@ -150,8 +150,8 @@ void * sockschild(struct clientparam* param) {
 	default:
 		RETURN(997);
  }
- if(param->hostname)myfree(param->hostname);
- param->hostname = (unsigned char *)mystrdup((char *)buf);
+ if(param->hostname)free(param->hostname);
+ param->hostname = (unsigned char *)strdup((char *)buf);
  if (ver == 5) {
 	 if ((res = sockgetcharcli(param, conf.timeouts[SINGLEBYTE_S], 0)) == EOF) {RETURN(441);}
 	 buf[0] = (unsigned char) res;
@@ -163,13 +163,13 @@ void * sockschild(struct clientparam* param) {
  else {
 	if(sockgetlinebuf(param, CLIENT, buf, BUFSIZE - 1, 0, conf.timeouts[STRING_S]) < 0) {RETURN(441);}
 	buf[127] = 0;
-	if(param->srv->needuser && *buf && !param->username)param->username = (unsigned char *)mystrdup((char *)buf);
+	if(param->srv->needuser && *buf && !param->username)param->username = (unsigned char *)strdup((char *)buf);
 	if(!memcmp(SAADDR(&param->req), "\0\0\0", 3)){
 		param->service = S_SOCKS45;
 		if(sockgetlinebuf(param, CLIENT, buf, BUFSIZE - 1, 0, conf.timeouts[STRING_S]) < 0) {RETURN(441);}
 		buf[127] = 0;
-		if(param->hostname)myfree(param->hostname);
-		param->hostname = (unsigned char *)mystrdup((char *)buf);
+		if(param->hostname)free(param->hostname);
+		param->hostname = (unsigned char *)strdup((char *)buf);
 		if(!getip46(param->srv->family, buf, (struct sockaddr *) &param->req)) RETURN(100);
 		param->sinsr = param->req;
 	}
@@ -341,7 +341,7 @@ fflush(stderr);
 			case 1:
 				if(param->redirectfunc){
 					void *ret = (*param->redirectfunc)(param);
-					if(buf)myfree(buf);
+					if(buf)free(buf);
 					return ret;
 				}
 				param->res = mapsocket(param, conf.timeouts[CONNECTION_L]);
@@ -420,7 +420,7 @@ fflush(stderr);
 	 printcommand(buf, command, param);
 
 	 dolog(param, buf);
-	 myfree(buf);
+	 free(buf);
  }
  freeparam(param);
  return (NULL);

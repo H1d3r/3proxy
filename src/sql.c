@@ -36,8 +36,8 @@ int init_sql(char * s){
     if(!s) return 0;
     if(!sqlstring || strcmp(sqlstring, s)){
 	string = sqlstring;
-	sqlstring=mystrdup(s);
-	if(string)myfree(string);
+	sqlstring=strdup(s);
+	if(string)free(string);
     }
 
     if(hstmt || hdbc || henv) close_sql();
@@ -65,7 +65,7 @@ int init_sql(char * s){
 	}
             SQLSetConnectAttr(hdbc, SQL_LOGIN_TIMEOUT, (void*)15, 0);
     }
-    string = mystrdup(sqlstring);
+    string = strdup(sqlstring);
     if(!string) return 0;
     datasource = strtok(string, ",");
     username = strtok(NULL, ",");
@@ -77,7 +77,7 @@ int init_sql(char * s){
                 (SQLCHAR*) username, (SQLSMALLINT)((username)?strlen(username):0),
                 (SQLCHAR*) password, (SQLSMALLINT)((password)?strlen(password):0));
 
-    myfree(string);
+    free(string);
     if (retcode != SQL_SUCCESS && retcode != SQL_SUCCESS_WITH_INFO){
 	SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
 	hdbc = NULL;

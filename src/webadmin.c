@@ -382,7 +382,7 @@ void * adminchild(struct clientparam* param) {
  pp.inbuf = 0;
  pp.cp = param;
 
- buf = myalloc(LINESIZE);
+ buf = malloc(LINESIZE);
  if(!buf) {RETURN(555);}
  i = sockgetlinebuf(param, CLIENT, (unsigned char *)buf, LINESIZE - 1, '\n', conf.timeouts[STRING_S]);
  if(i<5 || ((buf[0]!='G' || buf[1]!='E' || buf[2]!='T' || buf[3]!=' ' || buf[4]!='/') && 
@@ -396,7 +396,7 @@ void * adminchild(struct clientparam* param) {
 	RETURN(702);
  }
  *sb = 0;
- req = mystrdup(buf + ((*buf == 'P')? 6 : 5));
+ req = strdup(buf + ((*buf == 'P')? 6 : 5));
  while((i = sockgetlinebuf(param, CLIENT, (unsigned char *)buf, LINESIZE - 1, '\n', conf.timeouts[STRING_S])) > 2){
 	buf[i] = 0;
 	if(i > 19 && (!strncasecmp(buf, "authorization", 13))){
@@ -415,11 +415,11 @@ void * adminchild(struct clientparam* param) {
 		sb = strchr((char *)username, ':');
 		if(sb){
 			*sb = 0;
-			if(param->password)myfree(param->password);
-			param->password = (unsigned char *)mystrdup(sb+1);
+			if(param->password)free(param->password);
+			param->password = (unsigned char *)strdup(sb+1);
 		}
-		if(param->username) myfree(param->username);
-		param->username = (unsigned char *)mystrdup(username);
+		if(param->username) free(param->username);
+		param->username = (unsigned char *)strdup(username);
 		continue;
 	}
 	else if(i > 15 && (!strncasecmp(buf, "content-length:", 15))){
@@ -611,9 +611,9 @@ CLEANRET:
 
 
  printstr(&pp, NULL);
- if(buf) myfree(buf);
+ if(buf) free(buf);
  dolog(param, (unsigned char *)req);
- if(req)myfree(req);
+ if(req)free(req);
  freeparam(param);
  return (NULL);
 }

@@ -320,7 +320,7 @@ static int h_log(int argc, unsigned char ** argv){
 		notchanged = 1;
 	}
 	if(!notchanged && conf.logtarget){
-		myfree(conf.logtarget);
+		free(conf.logtarget);
 		conf.logtarget = NULL;
 	}
 	if(argc > 1) {
@@ -328,7 +328,7 @@ static int h_log(int argc, unsigned char ** argv){
 			conf.logfunc = lognone;
 			return 0;
 		}
-		if(!notchanged) conf.logtarget = (unsigned char *)mystrdup((char *)argv[1]);
+		if(!notchanged) conf.logtarget = (unsigned char *)strdup((char *)argv[1]);
 		if(*argv[1]=='@'){
 #ifndef _WIN32
 			conf.logfunc = logsyslog;
@@ -358,8 +358,8 @@ static int h_log(int argc, unsigned char ** argv){
 			conf.logfunc = logstdout;
 			if(notchanged) return 0;
 			conf.logtime = time(0);
-			if(conf.logname)myfree(conf.logname);
-			conf.logname = (unsigned char *)mystrdup((char *)argv[1]);
+			if(conf.logname)free(conf.logname);
+			conf.logname = (unsigned char *)strdup((char *)argv[1]);
 			if(conf.stdlog) conf.stdlog = freopen((char *)dologname (tmpbuf, conf.logname, NULL, conf.logtype, conf.logtime), "a", conf.stdlog);
 			else conf.stdlog = fopen((char *)dologname (tmpbuf, conf.logname, NULL, conf.logtype, conf.logtime), "a");
 			if(!conf.stdlog){
@@ -400,8 +400,8 @@ static int h_daemon(int argc, unsigned char **argv){
 }
 
 static int h_config(int argc, unsigned char **argv){
-	if(conf.conffile)myfree(conf.conffile);
-	conf.conffile = mystrdup((char *)argv[1]);
+	if(conf.conffile)free(conf.conffile);
+	conf.conffile = strdup((char *)argv[1]);
 	if(!conf.conffile) return 21;
 	return 0;
 }
@@ -423,10 +423,10 @@ static int h_include(int argc, unsigned char **argv){
 static int h_archiver(int argc, unsigned char **argv){
 	int j;
 
-	conf.archiver = myalloc(argc * sizeof(char *));
+	conf.archiver = malloc(argc * sizeof(char *));
 	if(conf.archiver) {
 		conf.archiverc = argc;
-		for(j = 0; j < conf.archiverc; j++) conf.archiver[j] = (unsigned char *)mystrdup((char *)argv[j]);
+		for(j = 0; j < conf.archiverc; j++) conf.archiver[j] = (unsigned char *)strdup((char *)argv[j]);
 	}
 	return 0;
 }
@@ -452,8 +452,8 @@ static int h_counter(int argc, unsigned char **argv){
 	}
 	if(argc >=4) {
 		conf.countertype = getrotate(*argv[2]);
-		if(conf.counterfile) myfree(conf.counterfile);
-		conf.counterfile = mystrdup((char *)argv[3]);
+		if(conf.counterfile) free(conf.counterfile);
+		conf.counterfile = strdup((char *)argv[3]);
 	}
 	return 0;
 }
@@ -470,8 +470,8 @@ static int h_maxseg(int argc, unsigned char **argv){
 
 static int h_logformat(int argc, unsigned char **argv){
 	unsigned char * old = conf.logformat;
-	conf.logformat = (unsigned char *)mystrdup((char *)argv[1]);
-	if(old) myfree(old);
+	conf.logformat = (unsigned char *)strdup((char *)argv[1]);
+	if(old) free(old);
 	return 0;
 }
 
@@ -500,7 +500,7 @@ static int h_auth(int argc, unsigned char **argv){
 	for(argc--; argc; argc--){
 	  for(au = authfuncs; au; au=au->next){
 		if(!strcmp((char *)argv[argc], au->desc)){
-			newau = myalloc(sizeof(struct auth));
+			newau = malloc(sizeof(struct auth));
 			if(!newau) {
 				return 21;
 			}
@@ -702,8 +702,8 @@ static int h_nsrecord(int argc, unsigned char **argv){
 }
 
 static int h_dialer(int argc, unsigned char **argv){
-	if(conf.demanddialprog) myfree(conf.demanddialprog);
-	conf.demanddialprog = mystrdup((char *)argv[1]);
+	if(conf.demanddialprog) free(conf.demanddialprog);
+	conf.demanddialprog = strdup((char *)argv[1]);
 	return 0;
 }
 
@@ -732,14 +732,14 @@ static int h_pidfile(int argc, unsigned char **argv){
 static int h_monitor(int argc, unsigned char **argv){
   struct filemon * fm;
 
-	fm = myalloc(sizeof (struct filemon));
+	fm = malloc(sizeof (struct filemon));
 	if(!fm) return 21;
 	if(stat((char *)argv[1], &fm->sb)){
-		myfree(fm);
+		free(fm);
 		fprintf(stderr, "Warning: file %s doesn't exist on line %d\n", argv[1], linenum);
 	}
 	else {
-		fm->path = mystrdup((char *)argv[1]);
+		fm->path = strdup((char *)argv[1]);
 		if(!fm->path) return 21;
 		fm->next = conf.fmon;
 		conf.fmon = fm;
@@ -784,7 +784,7 @@ static int h_parent(int argc, unsigned char **argv){
 	}
 	acl->action = 2;
 
-	chains = myalloc(sizeof(struct chain));
+	chains = malloc(sizeof(struct chain));
 	if(!chains){
 		return(21);
 	}
@@ -792,7 +792,7 @@ static int h_parent(int argc, unsigned char **argv){
 	chains->weight = (unsigned)atoi((char *)argv[1]);
 	if(chains->weight == 0 || chains->weight >1000) {
 		fprintf(stderr, "Chaining error: bad chain weight %u line %d\n", chains->weight, linenum);
-		myfree(chains);
+		free(chains);
 		return(3);
 	}
 	for(i = 0; redirs[i].name ; i++){
@@ -808,7 +808,7 @@ static int h_parent(int argc, unsigned char **argv){
 	}
 	if(!redirs[i].name) {
 		fprintf(stderr, "Chaining error: bad chain type (%s)\n", argv[2]);
-		myfree(chains);
+		free(chains);
 		return(4);
 	}
 #ifdef WITH_UN
@@ -820,15 +820,15 @@ static int h_parent(int argc, unsigned char **argv){
 	cidr = strchr((char *)argv[3], '/');
 	if(cidr) *cidr = 0;
 	if(!getip46(46, argv[3], (struct sockaddr *)&chains->addr)) {
-		myfree(chains);
+		free(chains);
 		return (5);
 	}
 #ifdef WITH_UN
 	}
 #endif
-	chains->exthost = (unsigned char *)mystrdup((char *)argv[3]);
+	chains->exthost = (unsigned char *)strdup((char *)argv[3]);
 	if(!chains->exthost) {
-		myfree(chains);
+		free(chains);
 		return 21;
 	}
 	if(cidr){
@@ -836,8 +836,8 @@ static int h_parent(int argc, unsigned char **argv){
 		chains->cidr = atoi(cidr + 1);
 	}
 	*SAPORT(&chains->addr) = htons((uint16_t)atoi((char *)argv[4]));
-	if(argc > 5) chains->extuser = (unsigned char *)mystrdup((char *)argv[5]);
-	if(argc > 6) chains->extpass = (unsigned char *)mystrdup((char *)argv[6]);
+	if(argc > 5) chains->extuser = (unsigned char *)strdup((char *)argv[5]);
+	if(argc > 6) chains->extpass = (unsigned char *)strdup((char *)argv[6]);
 	if(!acl->chains) {
 		acl->chains = chains;
 	}
@@ -923,7 +923,7 @@ struct ace * make_ace (int argc, unsigned char ** argv){
 	struct hostname *hostnamel=NULL;
 	int res;
 
-	acl = myalloc(sizeof(struct ace));
+	acl = malloc(sizeof(struct ace));
 	if(!acl) return acl;
 	memset(acl, 0, sizeof(struct ace));
 		if(argc > 0 && strcmp("*", (char *)argv[0])) {
@@ -931,10 +931,10 @@ struct ace * make_ace (int argc, unsigned char ** argv){
 			arg = (unsigned char *)strtok((char *)arg, ",");
 			if(arg) do {
 				if(!acl->users) {
-					acl->users = userl = myalloc(sizeof(struct userlist));
+					acl->users = userl = malloc(sizeof(struct userlist));
 				}
 				else {
-					userl->next = myalloc(sizeof(struct userlist));
+					userl->next = malloc(sizeof(struct userlist));
 					userl = userl -> next;
 				}
 				if(!userl) {
@@ -942,7 +942,7 @@ struct ace * make_ace (int argc, unsigned char ** argv){
 					return(NULL);
 				}
 				memset(userl, 0, sizeof(struct userlist));
-				userl->user=(unsigned char*)mystrdup((char *)arg);
+				userl->user=(unsigned char*)strdup((char *)arg);
 				if(!userl->user) return NULL;
 			} while((arg = (unsigned char *)strtok((char *)NULL, ",")));
 		}
@@ -950,10 +950,10 @@ struct ace * make_ace (int argc, unsigned char ** argv){
 			arg = (unsigned char *)strtok((char *)argv[1], ",");
 			if(arg) do {
 				if(!acl->src) {
-					acl->src = ipl = myalloc(sizeof(struct iplist));
+					acl->src = ipl = malloc(sizeof(struct iplist));
 				}
 				else {
-					ipl->next = myalloc(sizeof(struct iplist));
+					ipl->next = malloc(sizeof(struct iplist));
 					ipl = ipl -> next;
 				}
 				if(!ipl) {
@@ -978,10 +978,10 @@ struct ace * make_ace (int argc, unsigned char ** argv){
 			 if(scanipl(arg, &tmpip)){
 				if(!arglen) continue;
 				if(!acl->dstnames) {
-					acl->dstnames = hostnamel = myalloc(sizeof(struct hostname));
+					acl->dstnames = hostnamel = malloc(sizeof(struct hostname));
 				}
 				else {
-					hostnamel->next = myalloc(sizeof(struct hostname));
+					hostnamel->next = malloc(sizeof(struct hostname));
 					hostnamel = hostnamel -> next;
 				}
 				if(!hostnamel){
@@ -1001,7 +1001,7 @@ struct ace * make_ace (int argc, unsigned char ** argv){
 					arglen--;
 					hostnamel->matchtype ^= MATCHBEGIN;
 				}
-				hostnamel->name = (unsigned char *) mystrdup( (char *)pattern);
+				hostnamel->name = (unsigned char *) strdup( (char *)pattern);
 				if(!hostnamel->name) {
 					fprintf(stderr, "No memory for ACL entry, line %d\n", linenum);
 					return(NULL);
@@ -1010,10 +1010,10 @@ struct ace * make_ace (int argc, unsigned char ** argv){
 			 else {
 				
 				if(!acl->dst) {
-					acl->dst = ipl = myalloc(sizeof(struct iplist));
+					acl->dst = ipl = malloc(sizeof(struct iplist));
 				}
 				else {
-					ipl->next = myalloc(sizeof(struct iplist));
+					ipl->next = malloc(sizeof(struct iplist));
 					ipl = ipl -> next;
 				}
 				if(!ipl) {
@@ -1028,10 +1028,10 @@ struct ace * make_ace (int argc, unsigned char ** argv){
 			arg = (unsigned char *)strtok((char *)argv[3], ",");
 			if(arg) do {
 				if(!acl->ports) {
-					acl->ports = portl = myalloc(sizeof(struct portlist));
+					acl->ports = portl = malloc(sizeof(struct portlist));
 				}
 				else {
-					portl->next = myalloc(sizeof(struct portlist));
+					portl->next = malloc(sizeof(struct portlist));
 					portl = portl -> next;
 				}
 				if(!portl) {
@@ -1157,7 +1157,7 @@ struct ace * make_ace (int argc, unsigned char ** argv){
 				t2 = (t2 * 60) + (arg[12] - '0') * 10 + (arg[13] - '0');
 				t2 = (t2 * 60) + (arg[15] - '0') * 10 + (arg[16] - '0');
 				if(t2 < t1) break;
-				sp = myalloc(sizeof(struct period));
+				sp = malloc(sizeof(struct period));
 				if(sp){
 					sp->fromtime = t1;
 					sp->totime = t2;
@@ -1236,7 +1236,7 @@ static int h_ace(int argc, unsigned char **argv){
 	acl->action = res;
 	switch(acl->action){
 	case REDIRECT:
-		acl->chains = myalloc(sizeof(struct chain));
+		acl->chains = malloc(sizeof(struct chain));
 		if(!acl->chains) {
 			freeacl(acl);
 			return(21);
@@ -1263,7 +1263,7 @@ static int h_ace(int argc, unsigned char **argv){
 		break;
 	case CONNLIM:
 	case NOCONNLIM:
-		ncl = myalloc(sizeof(struct connlim));
+		ncl = malloc(sizeof(struct connlim));
 		if(!ncl) {
 			freeacl(acl);
 			return(21);
@@ -1290,7 +1290,7 @@ static int h_ace(int argc, unsigned char **argv){
 	case BANDLIM:
 	case NOBANDLIM:
 
-		nbl = myalloc(sizeof(struct bandlim));
+		nbl = malloc(sizeof(struct bandlim));
 		if(!nbl) {
 			freeacl(acl);
 			return(21);
@@ -1300,7 +1300,7 @@ static int h_ace(int argc, unsigned char **argv){
 		if(acl->action == BANDLIM) {
 			sscanf((char *)argv[1], "%u", &nbl->rate);
 			if(nbl->rate < 300) {
-				myfree(nbl);
+				free(nbl);
 				freeacl(acl);
 				fprintf(stderr, "Wrong bandwidth specified, line %d\n", linenum);
 				return(4);
@@ -1340,7 +1340,7 @@ static int h_ace(int argc, unsigned char **argv){
 	case COUNTALL:
 	case NOCOUNTALL:
 		if(!conf.trafcountfunc) conf.trafcountfunc = trafcountfunc;
-		tl = myalloc(sizeof(struct trafcount));
+		tl = malloc(sizeof(struct trafcount));
 		if(!tl) {
 			freeacl(acl);
 			return(21);
@@ -1354,14 +1354,14 @@ static int h_ace(int argc, unsigned char **argv){
 			tl->comment = ( char *)argv[1];
 			while(isdigit(*tl->comment))tl->comment++;
 			if(*tl->comment== '/')tl->comment++;
-			tl->comment = mystrdup(tl->comment);
+			tl->comment = strdup(tl->comment);
 
 			sscanf((char *)argv[1], "%u", &tl->number);
 			sscanf((char *)argv[3], "%lu", &lim);
 			tl->type = getrotate(*argv[2]);
 			tl->traflim64 =  ((uint64_t)lim)*(1024*1024);
 			if(!tl->traflim64) {
-				myfree(tl);
+				free(tl);
 				freeacl(acl);
 				fprintf(stderr, "Wrong traffic limit specified, line %d\n", linenum);
 				return(6);
@@ -1598,7 +1598,7 @@ static int h_chroot(int argc, unsigned char **argv){
 			p--;
 			*p = 0;
 		}
-		chrootp = mystrdup((char *)argv[1]);
+		chrootp = strdup((char *)argv[1]);
 		if(!chrootp) return 21;
 	}
 	if (gid && setregid(gid,gid)) {
@@ -1751,7 +1751,7 @@ int parsestr (unsigned char *str, unsigned char **argm, int nitems, unsigned cha
 					}
 					if((*bufsize - *inbuf) <STRINGBUF){
 						*bufsize += STRINGBUF;
-						if(!(buf = myrealloc(buf, *bufsize))){
+						if(!(buf = realloc(buf, *bufsize))){
 							fprintf(stderr, "Failed to allocate memory for %s\n", incbegin+1);
 							close(fd);
 							return -1;
@@ -1804,7 +1804,7 @@ int readconfig(FILE * fp){
   struct commands * cm;
   int res = 0;
 
-  if( !(buf = myalloc(bufsize)) || ! (argv = myalloc((NPARAMS + 1) * sizeof(unsigned char *))) ) {
+  if( !(buf = malloc(bufsize)) || ! (argv = malloc((NPARAMS + 1) * sizeof(unsigned char *))) ) {
 		fprintf(stderr, "No memory for configuration");
 		return(10);
   }
@@ -1851,8 +1851,8 @@ int readconfig(FILE * fp){
 	fprintf(stderr, "Unknown command: '%s' line %d\n", argv[0], linenum);
 	return(linenum);
   }
-  myfree(buf);
-  myfree(argv);
+  free(buf);
+  free(argv);
   return 0;
 
 }
@@ -1861,8 +1861,8 @@ int readconfig(FILE * fp){
 
 void freepwl(struct passwords *pwl){
 	for(; pwl; pwl = (struct passwords *)itfree(pwl, pwl->next)){
-		if(pwl->user)myfree(pwl->user);
-		if(pwl->password)myfree(pwl->password);
+		if(pwl->user)free(pwl->user);
+		if(pwl->password)free(pwl->password);
 	}
 }
 
@@ -1944,7 +1944,7 @@ void freeconf(struct extparam *confp){
  }
  if(tc)dumpcounters(tc,counterd);
  for(; tc; tc = (struct trafcount *) itfree(tc, tc->next)){
-	if(tc->comment)myfree(tc->comment);
+	if(tc->comment)free(tc->comment);
 	freeacl(tc->ace);
  }
 
@@ -1958,14 +1958,14 @@ void freeconf(struct extparam *confp){
 	close(counterd);
  }
  for(; fm; fm = (struct filemon *)itfree(fm, fm->next)){
-	if(fm->path) myfree(fm->path);
+	if(fm->path) free(fm->path);
  }
  if(logformat) {
-	myfree(logformat);
+	free(logformat);
  }
  if(archiver) {
-	for(i = 0; i < archiverc; i++) myfree(archiver[i]);
-	myfree(archiver);
+	for(i = 0; i < archiverc; i++) free(archiver[i]);
+	free(archiver);
  }
  havelog = 0;
 }

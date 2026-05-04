@@ -73,7 +73,7 @@ int sockgetcharcli(struct clientparam * param, int timeosec, int timeousec){
 	int len;
 
 	if(!param->clibuf){
-		if(!(param->clibuf = myalloc(SRVBUFSIZE))) return 0;
+		if(!(param->clibuf = malloc(SRVBUFSIZE))) return 0;
 		param->clibufsize = SRVBUFSIZE;
 		param->clioffset = param->cliinbuf = 0;
 	}
@@ -137,7 +137,7 @@ int sockgetcharsrv(struct clientparam * param, int timeosec, int timeousec){
 	if(!param->srvbuf){
 		bufsize = SRVBUFSIZE;
 		if(param->ndatfilterssrv > 0 && bufsize < 32768) bufsize = 32768;
-		if(!(param->srvbuf = myalloc(bufsize))) return 0;
+		if(!(param->srvbuf = malloc(bufsize))) return 0;
 		param->srvbufsize = bufsize;
 		param->srvoffset = param->srvinbuf = 0;
 		

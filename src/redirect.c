@@ -28,7 +28,7 @@ int clientnegotiate(struct chain * redir, struct clientparam * param, struct soc
 	pass = redir->extpass;
 	if (!param->srvbufsize){
 		param->srvbufsize = SRVBUFSIZE;
-		param->srvbuf = myalloc(param->srvbufsize);
+		param->srvbuf = malloc(param->srvbufsize);
 		if(!param->srvbuf) return 21;
 	}
 	buf = param->srvbuf;
@@ -322,12 +322,12 @@ int handleredirect(struct clientparam * param, struct ace * acentry){
 				int i;
 				if(cur->extuser){
 					if(param->extusername)
-						myfree(param->extusername);
-					param->extusername = (unsigned char *)mystrdup((char *)((*cur->extuser == '*' && param->username)? param->username : cur->extuser));
+						free(param->extusername);
+					param->extusername = (unsigned char *)strdup((char *)((*cur->extuser == '*' && param->username)? param->username : cur->extuser));
 					if(cur->extpass){
 						if(param->extpassword)
-							myfree(param->extpassword);
-						param->extpassword = (unsigned char *)mystrdup((char *)((*cur->extuser == '*' && param->password)?param->password : cur->extpass));
+							free(param->extpassword);
+						param->extpassword = (unsigned char *)strdup((char *)((*cur->extuser == '*' && param->password)?param->password : cur->extpass));
 					}
 					if(*cur->extuser == '*' && !param->username) return 4;
 				}
@@ -389,12 +389,12 @@ int handleredirect(struct clientparam * param, struct ace * acentry){
 			if(cur->extuser){
 				if(*cur -> extuser == '*' && !param->username) return 4;
 				if(param->extusername)
-					myfree(param->extusername);
-				param->extusername = (unsigned char *)mystrdup((char *)((*cur->extuser == '*' && param->username)? param->username : cur->extuser));
+					free(param->extusername);
+				param->extusername = (unsigned char *)strdup((char *)((*cur->extuser == '*' && param->username)? param->username : cur->extuser));
 				if(cur->extpass){
 					if(param->extpassword)
-						myfree(param->extpassword);
-					param->extpassword = (unsigned char *)mystrdup((char *)((*cur->extuser == '*' && param->password)?param->password : cur->extpass));
+						free(param->extpassword);
+					param->extpassword = (unsigned char *)strdup((char *)((*cur->extuser == '*' && param->password)?param->password : cur->extpass));
 				}
 			}
 			if(redir->secure) return ssl_parent(param);

@@ -463,8 +463,8 @@ int parsehostname(char *hostname, struct clientparam *param, uint16_t port){
 		*se = 0;
 	}
 	if(hostname != (char *)param->hostname){
-		if(param->hostname) myfree(param->hostname);
-		param->hostname = (unsigned char *)mystrdup(hostname + (se!=0));
+		if(param->hostname) free(param->hostname);
+		param->hostname = (unsigned char *)strdup(hostname + (se!=0));
 	}
 	if(sp){
 		port = atoi(sp+1);
@@ -486,12 +486,12 @@ int parseusername(char *username, struct clientparam *param, int extpasswd){
 		*se = 0;
 		if(sp) *sp = 0;
 		if(*(sb+1)) {
-			if(param->password) myfree(param->password);
-			param->password = (unsigned char *)mystrdup(sb+1);
+			if(param->password) free(param->password);
+			param->password = (unsigned char *)strdup(sb+1);
 		}
 		if(*username) {
-			if(param->username) myfree(param->username);
-			param->username = (unsigned char *)mystrdup(username);
+			if(param->username) free(param->username);
+			param->username = (unsigned char *)strdup(username);
 		}
 		username = se+1;
 	 }
@@ -499,12 +499,12 @@ int parseusername(char *username, struct clientparam *param, int extpasswd){
 		if(!sp) sp = strchr(username, ':');
 		if(sp){
 			*sp = 0;
-			if(param->extpassword) myfree(param->extpassword);
-			param->extpassword = (unsigned char *) mystrdup(sp+1);
+			if(param->extpassword) free(param->extpassword);
+			param->extpassword = (unsigned char *) strdup(sp+1);
 		}
 	}
-	if(param->extusername) myfree(param->extusername);
-	param->extusername = (unsigned char *)mystrdup(username);
+	if(param->extusername) free(param->extusername);
+	param->extusername = (unsigned char *)strdup(username);
 	if(sb) *sb = ':';
 	if(se) *se = ':';
 	if(sp) *sp = ':';

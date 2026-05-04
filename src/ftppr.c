@@ -24,7 +24,7 @@ void * ftpprchild(struct clientparam* param) {
  struct linger lg;
  struct pollfd fds;
 
- if(!(buf = myalloc(BUFSIZE))) RETURN(876);
+ if(!(buf = malloc(BUFSIZE))) RETURN(876);
  param->ctrlsock = param->clisock;
  param->operation = CONNECT;
  lg.l_onoff = 1;
@@ -38,7 +38,7 @@ void * ftpprchild(struct clientparam* param) {
 	if(i<4) {RETURN(802);}
 	buf[i] = 0;
 	if ((se=(unsigned char *)strchr((char *)buf, '\r'))) *se = 0;
-	if (req) myfree (req);
+	if (req) free (req);
 	req = NULL;
 
 	if (!strncasecmp((char *)buf, "OPEN ", 5)){
@@ -64,14 +64,14 @@ void * ftpprchild(struct clientparam* param) {
 
 	}
 	else if (!strncasecmp((char *)buf, "PASS ", 5)){
-		param->extpassword = (unsigned char *)mystrdup((char *)buf+5);
+		param->extpassword = (unsigned char *)strdup((char *)buf+5);
 		inbuf = BUFSIZE;
 		res = ftplogin(param, (char *)buf, &inbuf);
 		param->res = res;
 		if(inbuf && inbuf != BUFSIZE && socksend(param, param->ctrlsock, buf, inbuf, conf.timeouts[STRING_S])!=inbuf) {RETURN (807);}
 		if(!res) status = 3;
 		sprintf((char *)buf, "%.128s@%.128s%c%hu", param->extusername, param->hostname, (ntohs(*SAPORT(&param->sinsr))==21)?0:':', ntohs(*SAPORT(&param->sinsr)));
-		req = mystrdup((char *)buf);
+		req = strdup((char *)buf);
 #ifndef WITHMAIN
 		{
 			int action, reqbufsize, reqsize;
@@ -221,7 +221,7 @@ void * ftpprchild(struct clientparam* param) {
 			ss = INVALID_SOCKET;
 		}
 		if(clidatasock == INVALID_SOCKET){RETURN(828);}
-		req = mystrdup((char *)buf);
+		req = strdup((char *)buf);
 		buf[4] = 0;
 		status = 3;
 		ss = ftpcommand(param, buf, arg? buf+5 : NULL);
@@ -278,7 +278,7 @@ void * ftpprchild(struct clientparam* param) {
 			continue;
 		}
 		if(!strncasecmp((char *)buf, "QUIT", 4)) status = 5;
-		if(!strncasecmp((char *)buf, "CWD ", 4)) req = mystrdup((char *)buf);
+		if(!strncasecmp((char *)buf, "CWD ", 4)) req = strdup((char *)buf);
 		i = (int)strlen((char *)buf);
 		buf[i++] = '\r';
 		buf[i++] = '\n';
@@ -318,8 +318,8 @@ CLEANRET:
  if(param->res != 0 || param->statscli64 || param->statssrv64 ){
 	dolog(param, (unsigned char *)((req && (param->res > 802))? req:NULL));
  }
- if(req) myfree(req);
- if(buf) myfree(buf);
+ if(req) free(req);
+ if(buf) free(buf);
  freeparam(param);
  return (NULL);
 }

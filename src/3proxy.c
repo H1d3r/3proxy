@@ -489,7 +489,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int 
   }
 #endif
 #endif
-  conf.conffile = mystrdup((argc==2)?argv[1]:(char*)DEFAULTCONFIG);
+  conf.conffile = strdup((argc==2)?argv[1]:(char*)DEFAULTCONFIG);
   if(conf.conffile && *conf.conffile != '-') {
 	fp = confopen();
 #ifndef _WIN32

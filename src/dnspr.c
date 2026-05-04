@@ -33,7 +33,7 @@ void * dnsprchild(struct clientparam* param) {
 #endif
 
 
- if(!(bbuf = myalloc(BUFSIZE+2))){
+ if(!(bbuf = malloc(BUFSIZE+2))){
 	param->srv->fds.events = POLLIN;
 	RETURN (21);
  }
@@ -75,7 +75,7 @@ void * dnsprchild(struct clientparam* param) {
  }
  if(len > (i-4)) {RETURN(817);}
 
- host = mystrdup((char *)buf+13);
+ host = strdup((char *)buf+13);
  if(!host) {RETURN(21);}
 
  for(s2 = buf + 12; (s1 = (unsigned char *)strchr((char *)s2 + 1, '.')); s2 = s1)*s2 = (unsigned char)((s1 - s2) - 1); 
@@ -200,8 +200,8 @@ CLEANRET:
 	}
 	dolog(param, buf);
  }
- if(bbuf)myfree(bbuf);
- if(host)myfree(host);
+ if(bbuf)free(bbuf);
+ if(host)free(host);
 #ifndef _WIN32
  param->clisock = INVALID_SOCKET;
 #endif

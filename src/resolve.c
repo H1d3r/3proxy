@@ -171,8 +171,8 @@ uint32_t udpresolve(int af, unsigned char * name, unsigned char * value, uint32_
 		    s2 = s1;
 		}
 		*s2 = 0;
-		if(param->username)myfree(param->username);
-		param->username = (unsigned char *)mystrdup ((char *)buf + k + 13);
+		if(param->username)free(param->username);
+		param->username = (unsigned char *)strdup ((char *)buf + k + 13);
 		
 		return udpresolve(af,param->username, value, NULL, NULL, 2);
 	    }

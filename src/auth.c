@@ -93,8 +93,8 @@ int cacheauth(struct clientparam * param){
 	}
 
 	if(!(conf.authcachetype&2) && *ac.username){
-	    if(param->username) myfree(param->username);
-	    param->username = (unsigned char *)mystrdup((char *)ac.username);
+	    if(param->username) free(param->username);
+	    param->username = (unsigned char *)strdup((char *)ac.username);
 	}
 	if((conf.authcachetype & 32)){
 	    memset(&param->sinsl, 0, sizeof(param->sinsl));

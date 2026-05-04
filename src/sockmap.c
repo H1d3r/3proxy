@@ -103,10 +103,10 @@ int sockmap(struct clientparam * param, int timeo, int usesplice){
  if(!usesplice)
 #endif
  {
-	if(fromserver && !param->srvbuf && (!(param->srvbuf=myalloc(SRVBUFSIZE)) || !(param->srvbufsize = SRVBUFSIZE))){
+	if(fromserver && !param->srvbuf && (!(param->srvbuf=malloc(SRVBUFSIZE)) || !(param->srvbufsize = SRVBUFSIZE))){
 		RETURN (21);
 	}
-	if(fromclient && !param->clibuf && (!(param->clibuf=myalloc(SRVBUFSIZE)) || !(param->clibufsize = SRVBUFSIZE))){
+	if(fromclient && !param->clibuf && (!(param->clibuf=malloc(SRVBUFSIZE)) || !(param->clibufsize = SRVBUFSIZE))){
 		RETURN (21);
 	}
 

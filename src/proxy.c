@@ -239,7 +239,7 @@ void * proxychild(struct clientparam* param) {
 
 
  if(param->remsock != INVALID_SOCKET) haveconnection = 1; 
- if(!(buf = myalloc(BUFSIZE))) {RETURN(21);}
+ if(!(buf = malloc(BUFSIZE))) {RETURN(21);}
  bufsize = BUFSIZE;
  anonymous = param->srv->anonymous;
 for(;;){
@@ -292,9 +292,9 @@ for(;;){
 		memset(&param->sinsr, 0, sizeof(param->sinsr));
 		memset(&param->req, 0, sizeof(param->req));
 	}
-	myfree(req);
+	free(req);
  }
- req = (unsigned char *)mystrdup((char *)buf);
+ req = (unsigned char *)strdup((char *)buf);
  if(!req){RETURN(510);}
  if(i<10) {
 	RETURN(511);
@@ -335,13 +335,13 @@ for(;;){
 	prefix = (int)(se - buf);
 	su = (unsigned char*)strrchr((char *)sb, '@');
 	if(su) {
-		su = (unsigned char *)mystrdup((char *)sb);
+		su = (unsigned char *)strdup((char *)sb);
 		decodeurl(su, 0);
 		if(parseconnusername((char *)su, (struct clientparam *)param, 1, (uint16_t)((ftp)?21:80))) {
-			myfree(su);
+			free(su);
 			RETURN (100);
 		}
-		myfree(su);
+		free(su);
 	}
 	else if(parsehostname((char *)sb, (struct clientparam *)param, (uint16_t)((ftp)? 21:80))) RETURN(100);
 	if(!isconnect){
@@ -376,12 +376,12 @@ for(;;){
 			sb = (unsigned char *)strchr((char *)username, ':');
 			if(sb){
 				*sb = 0;
-				if(param->password)myfree(param->password);
-				param->password = (unsigned char *)mystrdup((char *)sb+1);
+				if(param->password)free(param->password);
+				param->password = (unsigned char *)strdup((char *)sb+1);
 				param->pwtype = 0;
 			}
-			if(param->username)myfree(param->username);
-			param->username = (unsigned char *)mystrdup((char *)username);
+			if(param->username)free(param->username);
+			param->username = (unsigned char *)strdup((char *)username);
 			continue;
 		}
 	}
@@ -420,12 +420,12 @@ for(;;){
 		if(!param->hostname){
 			if(parsehostname((char *)sb, param, 80)) RETURN(100);
 		}
-		newbuf = myalloc(strlen((char *)req) + strlen((char *)(buf+inbuf)) + 8);
+		newbuf = malloc(strlen((char *)req) + strlen((char *)(buf+inbuf)) + 8);
 		if(newbuf){
 			sp = (unsigned char *)strchr((char *)req+1, '/');
 			memcpy(newbuf, req, (sp - req));
 			sprintf((char*)newbuf + (sp - req), "http://%s%s",sb,sp);
-			myfree(req);
+			free(req);
 			req = newbuf;
 		}
 		if(se)*se = c;
@@ -445,11 +445,11 @@ for(;;){
 			sb = (unsigned char *)strchr((char *)username, ':');
 			if(sb){
 				*sb = 0;
-				if(param->extpassword)myfree(param->extpassword);
-				param->extpassword = (unsigned char *)mystrdup((char *)sb+1);
+				if(param->extpassword)free(param->extpassword);
+				param->extpassword = (unsigned char *)strdup((char *)sb+1);
 			}
-			if(param->extusername)myfree(param->extusername);
-			param->extusername = (unsigned char *)mystrdup((char *)username);
+			if(param->extusername)free(param->extusername);
+			param->extusername = (unsigned char *)strdup((char *)username);
 			continue;
 		}
 	}
@@ -469,7 +469,7 @@ for(;;){
 		if (bufsize > (LINESIZE * 16)){
 			RETURN (516);
 		}
-		if(!(newbuf = myrealloc(buf, bufsize + BUFSIZE))){RETURN (21);}
+		if(!(newbuf = realloc(buf, bufsize + BUFSIZE))){RETURN (21);}
 		buf = newbuf;
 		bufsize += BUFSIZE;
 	}
@@ -560,14 +560,14 @@ for(;;){
 		}
 	}
 	ckeepalive = 1;
-	if(ftpbase) myfree(ftpbase);
+	if(ftpbase) free(ftpbase);
 	ftpbase = NULL;
 	if(!(sp = (unsigned char *)strchr((char *)ss, ' '))){RETURN(799);}
 	*sp = 0;
 
 	decodeurl(ss, 0);
 	i = (int)strlen((char *)ss);
-	if(!(ftpbase = myalloc(i+2))){RETURN(21);}
+	if(!(ftpbase = malloc(i+2))){RETURN(21);}
 	memcpy(ftpbase, ss, i);
 	if(ftpbase[i-1] != '/') ftpbase[i++] = '/';
 	ftpbase[i] = 0;
@@ -757,7 +757,7 @@ for(;;){
 					inbuf = 0;
 				}
 				else {
-					if(!(newbuf = myrealloc(buf, bufsize + BUFSIZE))){RETURN (21);}
+					if(!(newbuf = realloc(buf, bufsize + BUFSIZE))){RETURN (21);}
 					buf = newbuf;
 					bufsize += BUFSIZE;
 				}
@@ -793,14 +793,14 @@ for(;;){
 
  if(isconnect && param->redirtype != R_HTTP) {
 	if(param->redirectfunc) {
-		if(req)myfree(req);
-		if(buf)myfree(buf);
+		if(req)free(req);
+		if(buf)free(buf);
 		return (*param->redirectfunc)(param);
 	}
 	param->res =  mapsocket(param, conf.timeouts[CONNECTION_L]);
 	if(param->redirectfunc) {
-		if(req)myfree(req);
-		if(buf)myfree(buf);
+		if(req)free(req);
+		if(buf)free(buf);
 		return (*param->redirectfunc)(param);
 	}
 	RETURN(param->res);
@@ -939,7 +939,7 @@ for(;;){
 		if (bufsize > 20000){
 			RETURN (516);
 		}
-		if(!(newbuf = myrealloc(buf, bufsize + BUFSIZE))){RETURN (21);}
+		if(!(newbuf = realloc(buf, bufsize + BUFSIZE))){RETURN (21);}
 		buf = newbuf;
 		bufsize += BUFSIZE;
 	}
@@ -1122,9 +1122,9 @@ CLEANRET:
 	}
  } 
  logurl(param, (char *)buf, (char *)req, ftp);
- if(req)myfree(req);
- if(buf)myfree(buf);
- if(ftpbase)myfree(ftpbase);
+ if(req)free(req);
+ if(buf)free(buf);
+ if(ftpbase)free(ftpbase);
  freeparam(param);
  return (NULL);
 }

@@ -19,26 +19,26 @@ int readreply (struct clientparam* param) {
  unsigned char * buf;
  int res, i, bufsize = 640;
 
- if(!(buf = myalloc(bufsize))) return 0;
+ if(!(buf = malloc(bufsize))) return 0;
  do {
 	i = sockgetlinebuf(param, SERVER, buf, bufsize-1, '\n', conf.timeouts[STRING_L]);
 	if(i < 1) break;
 #ifndef WITHMAIN
 	res = handlehdrfilterssrv(param, &buf, &bufsize, 0, &i);
 	if(res != PASS) {
-		myfree(buf);
+		free(buf);
 		return -1;
 	}
 #endif
 	socksend(param, param->clisock, buf, i, conf.timeouts[STRING_S]);	
  } while (i > 3 && buf[3] == '-');
  if(i < 3) {
-	myfree(buf);
+	free(buf);
 	return 0;
  }
  buf[i] = 0;
  res = atoi((char *)buf);
- myfree(buf);
+ free(buf);
  return res;
 }
 
@@ -47,14 +47,14 @@ int readcommand (struct clientparam* param) {
  int res, i, bufsize = 320;
  int ret = 1;
 
- if(!(buf = myalloc(bufsize))) return 0;
+ if(!(buf = malloc(bufsize))) return 0;
  i = sockgetlinebuf(param, CLIENT, buf, bufsize-1, '\n', conf.timeouts[STRING_L]);
  if(i < 4) return 0;
 #ifndef WITHMAIN
  if(!strncasecmp((char *)buf, "MAIL", 4) || !strncasecmp((char *)buf, "RCPT", 4) || !strncasecmp((char *)buf, "STARTTLS", 8) || !strncasecmp((char *)buf, "TURN", 4)){
 	res = handlehdrfilterscli(param, &buf, &bufsize, 0, &i);
 	if(res != PASS) {
-		myfree(buf);
+		free(buf);
 		if(res == HANDLED) return 2;
 		return -1;
 	}
@@ -64,7 +64,7 @@ int readcommand (struct clientparam* param) {
  if(!strncasecmp((char *)buf, "STARTTLS", 8) || !strncasecmp((char *)buf, "TURN", 4)){
 	ret = 22;
  }
- myfree(buf);
+ free(buf);
  return ret;
 }
 
@@ -72,12 +72,12 @@ int readdata (struct clientparam* param) {
  unsigned char * buf;
  int res, i, bufsize = 4096;
 
- if(!(buf = myalloc(bufsize))) return 0;
+ if(!(buf = malloc(bufsize))) return 0;
  while ((i = sockgetlinebuf(param, CLIENT, buf, bufsize-1, '\n', conf.timeouts[STRING_L])) > 0 && !(i==3 && buf[0] == '.')){
 #ifndef WITHMAIN
 	res = handledatfltcli(param, &buf, &bufsize, 0, &i);
 	if(res != PASS) {
-		myfree(buf);
+		free(buf);
 		if(res == HANDLED) return 1;
 		return -1;
 	}
@@ -85,11 +85,11 @@ int readdata (struct clientparam* param) {
 	socksend(param, param->remsock, buf, i, conf.timeouts[STRING_S]);	
  } 
  if(i < 1) {
-	myfree(buf);
+	free(buf);
 	return 0;
  }
  socksend(param, param->remsock, buf, i, conf.timeouts[STRING_S]);	
- myfree(buf);
+ free(buf);
  return 1;
 }
 
@@ -118,7 +118,7 @@ void * smtppchild(struct clientparam* param) {
 	else {
 		login = -1;
 		buf[i] = 0;
-		command = mystrdup((char *)buf);
+		command = strdup((char *)buf);
 		break;
 	}
 	i = sockgetlinebuf(param, CLIENT, buf, sizeof(buf) - 10, '\n', conf.timeouts[STRING_S]);
@@ -140,8 +140,8 @@ void * smtppchild(struct clientparam* param) {
 	i = de64(buf,username,255);
 	if(i < 0) {RETURN(666);}
 	username[i] = 0;
-	if(param->extpassword) myfree(param->extpassword);
-	param->extpassword = (unsigned char *)mystrdup((char *)username);
+	if(param->extpassword) free(param->extpassword);
+	param->extpassword = (unsigned char *)strdup((char *)username);
  }
  else if(login == 2){
 	if(i > 13) {
@@ -160,8 +160,8 @@ void * smtppchild(struct clientparam* param) {
 	parseconnusername((char *)username+1, param, 0, 25);
 	res = (int)strlen((char *)username+1) + 2;
 	if(res < i){
-		if(param->extpassword) myfree(param->extpassword);
-		param->extpassword = (unsigned char *)mystrdup((char *)username + res);
+		if(param->extpassword) free(param->extpassword);
+		param->extpassword = (unsigned char *)strdup((char *)username + res);
 	}
  }
 
@@ -298,7 +298,7 @@ CLEANRET:
  if(param->clisock != INVALID_SOCKET) {
 	if ((param->res > 0 && param->res < 100) || (param->res > 661 && param->res <700)) socksend(param, param->clisock, (unsigned char *)"571 \r\n", 6,conf.timeouts[STRING_S]);
  }
- if(command) myfree(command);
+ if(command) free(command);
  freeparam(param);
  return (NULL);
 }
