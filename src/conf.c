@@ -7,6 +7,7 @@
 */
 
 #include "proxy.h"
+#include "blake2_compat.h"
 #ifdef WITH_SSL
 void ssl_install(void);
 #endif
@@ -522,6 +523,8 @@ static int h_users(int argc, unsigned char **argv){
     int j;
     unsigned char *arg;
     char *pw[2];
+    char pass[256];
+    int l;
 
     for (j = 1; j < argc; j++) {
         arg = (unsigned char *)strchr((char *)argv[j], ':');
@@ -529,34 +532,44 @@ static int h_users(int argc, unsigned char **argv){
         *arg = 0;
         pw[0] = (char *)argv[j];
 
+        if (!pwl_table.ihashtable && inithashtable(&pwl_table, 16, 32, 1048576))
+                    return 3;
+	memset(pass, 0, sizeof(pass));
         if (arg[1] && arg[2] && arg[3] == ':') {
             pw[1] = (char *)(arg + 4);
             if (arg[1] == 'N' && arg[2] == 'T') {
 #ifdef WITH_SSL
-                if (!pwnt_table.ihashtable && inithashtable(&pwnt_table, 16, 32, 1048576))
-                    return 3;
-                hashadd(&pwnt_table, pw, &dummy, MAX_COUNTER_TIME);
+		*pass = NT;
+#else
+                continue;
 #endif
-                continue;
             }
-            if (arg[1] == 'C' && arg[2] == 'R') {
-                if (!pwcr_table.ihashtable && inithashtable(&pwcr_table, 16, 32, 1048576))
-                    return 3;
-                hashadd(&pwcr_table, pw[0], pw[1], MAX_COUNTER_TIME);
-                continue;
+            else if (arg[1] == 'C' && arg[2] == 'R') {
+		*pass = CR;
             }
-            if (arg[1] == 'C' && arg[2] == 'L') {
-                /* fall through to CL handling below */
+            else if (arg[1] == 'C' && arg[2] == 'L') {
+		*pass = CL;
             } else {
                 continue;
             }
         } else {
+    	    *pass = CL;
             pw[1] = (char *)(arg + 1);
         }
-
-        if (!pw_table.ihashtable && inithashtable(&pw_table, 16, 32, 1048576))
-            return 3;
-        hashadd(&pw_table, pw, &dummy, MAX_COUNTER_TIME);
+	l = strlen(pw[1]);
+	if(l > 255) l = 255;
+	if((unsigned)l >= pwl_table.recsize) {
+	    if(*pass != CL) continue;
+	    blake2b_state S;
+	    unsigned hashsz;
+	    hashsz = pwl_table.recsize - 1 < 64 ? pwl_table.recsize - 1 : 64;
+	    blake2b_init(&S, hashsz);
+	    blake2b_update(&S, pw[1], l + 1);
+	    blake2b_final(&S, (uint8_t *)(pass + 1), hashsz);
+	} else {
+	    memcpy(pass + 1, pw[1], l);
+	}
+        hashadd(&pwl_table, pw[0], pass, MAX_COUNTER_TIME);
     }
     return 0;
 }
@@ -1892,11 +1905,7 @@ void freeconf(struct extparam *confp){
  confp->connlimiter = NULL;
  _3proxy_mutex_unlock(&connlim_mutex);
 
- destroyhashtable(&pw_table);
-#ifdef WITH_SSL
- destroyhashtable(&pwnt_table);
-#endif
- destroyhashtable(&pwcr_table);
+ destroyhashtable(&pwl_table);
 
  confp->logfunc = lognone;
  logformat = confp->logformat;

@@ -7,6 +7,7 @@
 */
 
 #include "proxy.h"
+#include "blake2_compat.h"
 
 void initbandlims(struct clientparam *param);
 
@@ -217,23 +218,43 @@ int dnsauth(struct clientparam * param){
 int strongauth(struct clientparam * param){
 	static char dummy;
 	unsigned char buf[256];
-	char cryptpw[65] = {0};
+	char pass[256] = {0};
 
 	if (!param->username) return 4;
 	if (!param->pwtype && param->password) {
-		if (pw_table.ihashtable && hashresolv(&pw_table, param, &dummy, NULL))
-			return 0;
+		if (pwl_table.ihashtable && hashresolv(&pwl_table, param->username, pass, NULL)) {
+			switch(pass[0]){
+			    case CL: {
+			    int pwlen = strlen((char *)param->password);
+			    if(pwlen > 255) pwlen = 255;
+			    if((unsigned)pwlen < pwl_table.recsize) {
+				if(!strncmp(pass + 1, (char *)param->password, pwl_table.recsize - 1)) return 0;
+			    } else {
+				blake2b_state S;
+				unsigned hashsz;
+				hashsz = pwl_table.recsize - 1 < 64 ? pwl_table.recsize - 1 : 64;
+				memset(buf, 0, pwl_table.recsize - 1);
+				blake2b_init(&S, hashsz);
+				blake2b_update(&S, param->password, pwlen + 1);
+				blake2b_final(&S, buf, hashsz);
+				if(!memcmp(pass + 1, buf, pwl_table.recsize - 1)) return 0;
+			    }
+			    return 6;
+			    }
+			    case CR:
+			    if (!strcmp(pass + 1, (char *)mycrypt(param->password, (unsigned char *)pass, buf)))
+				    return 0;
+			    else return 7;
 #ifdef WITH_SSL
-		if (pwnt_table.ihashtable && hashresolv(&pwnt_table, param, &dummy, NULL))
-			return 0;
+			    case NT:
+			    ntpwdhash(buf, param->password, 1);
+			    if(!strcmp(pass + 1, (char *)buf)) return 0;
+			    else return 8;
 #endif
-#ifndef NOCRYPT
-		if (pwcr_table.ihashtable && hashresolv(&pwcr_table, param, cryptpw, NULL)) {
-			if (!strcmp(cryptpw, (char *)mycrypt(param->password, (unsigned char *)cryptpw, buf)))
-				return 0;
-			return 7;
+			    default:
+			    break;
+			}
 		}
-#endif
 	}
 	return 5;
 }
